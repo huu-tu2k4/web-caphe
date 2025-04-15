@@ -1,0 +1,130 @@
+﻿@* @using CFSM_WEB.Models;
+@using X.PagedList.Mvc.Core;
+@model X.PagedList.IPagedList<THoaDon>
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "DanhSachHD";
+    Layout = "~/Areas/Admin/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<h1>Danh sách hóa đơn</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Ngày đặt</th>            
+            <th>Khách</th>
+            <th>Địa chỉ</th>
+            <th>Phương thức thanh toán</th>
+            <th>Nhân viên tạo hd</th>
+            <th>Thành tiền</th>
+            <th>Trạng thái hd</th>
+            <th>Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        @{
+            int i = 0;
+        }
+        @foreach (var item in Model)
+        {
+            string cls = i % 2 == 0 ? "table-warning" : "table-danger";
+            i++;
+            <tr class="@cls">
+                <td>@Html.DisplayFor(modelItem => item.NgayLap)</td>
+                <td>@item.MaKhachHangNavigation.HoTen</td>
+                <td>@item.DiaChi</td>
+                <td>@item.CachThanhToan</td>
+                <td>@item.MaNhanVienNavigation.HoTen</td>                
+                <td>@Html.DisplayFor(modelItem => item.ThanhTien)</td>
+                <td>@item.TrangThaiHoaDon</td>
+                <td>
+
+                    <button class="btn btn-primary" onclick="window.location.href='@Url.Action("DanhMucChiTietHD", new { maHD = item.MaHoaDon })'">Detail</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div>
+    @Html.PagedListPager(Model, page => Url.Action("DanhSachHD", new { page = page }), new
+
+            X.PagedList.Mvc.Core.PagedListRenderOptions()
+{
+    LiElementClasses = new List<String>
+    {"page-item"},
+
+    PageClasses = new List<String>
+    {"page-link"}
+
+})
+ *@
+
+@using CFSM_WEB.Models
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "DanhSachHD";
+    Layout = "~/Areas/Admin/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<h1>Danh sách hóa đơn</h1>
+
+<table class="table" id="hoaDonTable">
+    <thead>
+        <tr>
+            <th>Ngày đặt</th>
+            <th>Khách</th>
+            <th>Địa chỉ</th>
+            <th>Phương thức thanh toán</th>
+            <th>Nhân viên tạo hd</th>
+            <th>Thành tiền</th>
+            <th>Trạng thái hd</th>
+            <th>Thao tác</th>
+        </tr>
+    </thead>
+    <tbody id="hoaDonBody">
+        <!-- Dữ liệu sẽ được thêm bằng JavaScript -->
+    </tbody>
+</table>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            loadHoaDon(); // Load danh sách hóa đơn khi trang được tải
+
+            function loadHoaDon() {
+                $.ajax({
+                    url: '/api/admin/homeadminapi/DanhSachHD',
+                    type: 'GET',
+                    success: function (response) {
+                        // Xóa dữ liệu cũ trong bảng
+                        $('#hoaDonBody').empty();
+
+                        // Thêm dữ liệu mới từ API
+                        $.each(response, function (index, item) {
+                            var rowClass = index % 2 === 0 ? 'table-warning' : 'table-danger';
+                            var row = `<tr class="${rowClass}">
+                                <td>${item.ngayLap ? new Date(item.ngayLap).toLocaleDateString() : ''}</td>
+                                <td>${item.khachHangHoTen || ''}</td>
+                                <td>${item.diaChi || ''}</td>
+                                <td>${item.cachThanhToan || ''}</td>
+                                <td>${item.nhanVienHoTen || ''}</td>
+                                <td>${item.thanhTien || ''}</td>
+                                <td>${item.trangThaiHoaDon || ''}</td>
+                                <td>
+                                    <button class="btn btn-primary" onclick="window.location.href='/admin/homeadmin/DanhMucChiTietHD?maHD=${item.maHoaDon}'">Detail</button>
+                                </td>
+                            </tr>`;
+                            $('#hoaDonBody').append(row);
+                        });
+                    },
+                    error: function (xhr) {
+                        alert('Đã xảy ra lỗi khi tải danh sách hóa đơn: ' + xhr.responseText);
+                    }
+                });
+            }
+        });
+    </script>
+}

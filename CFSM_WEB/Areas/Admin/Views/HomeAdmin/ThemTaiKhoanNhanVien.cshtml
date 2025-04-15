@@ -1,0 +1,151 @@
+﻿@* @model CFSM_WEB.ViewModels.RegisterVM
+
+@{
+    ViewData["Title"] = "Thêm tài khoản nhân viên";
+    Layout = "~/Areas/Admin/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<h2>@ViewData["Title"]</h2>
+<form method="post">
+    <div class="form-group">
+        <label for="UserName">Tên đăng nhập</label>
+        <input type="text" class="form-control" id="UserName" name="UserName" asp-for="UserName" />
+        @Html.ValidationMessageFor(model => model.UserName)
+    </div>
+
+    <div class="form-group">
+        <label for="Password">Mật khẩu</label>
+        <input type="password" class="form-control" id="Password" name="Password" asp-for="Password" />
+        @Html.ValidationMessageFor(model => model.Password)
+    </div>
+    <div class="form-group">
+        <label for="FullName">Họ tên</label>
+        <input type="text" class="form-control" id="FullName" name="FullName" asp-for="FullName" />
+        @Html.ValidationMessageFor(model => model.FullName)
+    </div>
+
+    <div class="form-group">
+        <label for="Email">Email</label>
+        <input type="email" class="form-control" id="Email" name="Email" asp-for="Email" />
+        @Html.ValidationMessageFor(model => model.Email)
+    </div>
+
+    <div class="form-group">
+        <label for="Address">Địa chỉ</label>
+        <input type="text" class="form-control" id="Address" name="Address" asp-for="Address" "   />
+        @Html.ValidationMessageFor(model => model.Address)
+    </div>
+
+    <div class="form-group">
+        <label for="PhoneNumber">Số điện thoại</label>
+        <input type="text" class="form-control" id="PhoneNumber" name="PhoneNumber" asp-for="PhoneNumber" />
+        @Html.ValidationMessageFor(model => model.PhoneNumber)
+    </div>
+
+    <button type="submit" class="btn btn-primary">Thêm tài khoản</button>
+    
+</form>
+  <div class="mt-2">
+    <button type="button" onclick="location.href='@Url.Action("DanhSachNhanVien")'" class="btn btn-primary">Quay lại danh sách nhân viên</button>
+      </div> 
+
+ *@
+@using CFSM_WEB.ViewModels
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "Thêm tài khoản nhân viên";
+    Layout = "~/Areas/Admin/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<div id="message" class="alert alert-danger" style="display: none;"></div>
+
+<form id="themTaiKhoanForm">
+    <div class="form-group">
+        <label for="UserName">Tên đăng nhập</label>
+        <input type="text" class="form-control" id="UserName" name="UserName" required>
+        <span class="text-danger" id="UserNameError"></span>
+    </div>
+    <div class="form-group">
+        <label for="Password">Mật khẩu</label>
+        <input type="password" class="form-control" id="Password" name="Password" required>
+        <span class="text-danger" id="PasswordError"></span>
+    </div>
+    <div class="form-group">
+        <label for="FullName">Họ tên</label>
+        <input type="text" class="form-control" id="FullName" name="FullName" required>
+        <span class="text-danger" id="FullNameError"></span>
+    </div>
+    <div class="form-group">
+        <label for="Email">Email</label>
+        <input type="email" class="form-control" id="Email" name="Email" required>
+        <span class="text-danger" id="EmailError"></span>
+    </div>
+    <div class="form-group">
+        <label for="Address">Địa chỉ</label>
+        <input type="text" class="form-control" id="Address" name="Address" required>
+        <span class="text-danger" id="AddressError"></span>
+    </div>
+    <div class="form-group">
+        <label for="PhoneNumber">Số điện thoại</label>
+        <input type="text" class="form-control" id="PhoneNumber" name="PhoneNumber" required>
+        <span class="text-danger" id="PhoneNumberError"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">Thêm tài khoản</button>
+</form>
+
+<div class="mt-2">
+    <button type="button" onclick="location.href='@Url.Action("DanhSachNhanVien")'" class="btn btn-primary">Quay lại danh sách nhân viên</button>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#themTaiKhoanForm').on('submit', function (e) {
+                e.preventDefault();
+
+                // Xóa thông báo lỗi cũ
+                $('.text-danger').text('');
+
+                var formData = {
+                    userName: $('#UserName').val(),
+                    password: $('#Password').val(),
+                    fullName: $('#FullName').val(),
+                    email: $('#Email').val(),
+                    address: $('#Address').val(),
+                    phoneNumber: $('#PhoneNumber').val()
+                };
+
+                $.ajax({
+                    url: '/api/admin/homeadminapi/ThemTaiKhoanNhanVien',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    success: function (response) {
+                        alert(response.message);
+                        window.location.href = '/admin/homeadmin/DanhSachNhanVien';
+                    },
+                    error: function (xhr) {
+                        if (xhr.status === 400) {
+                            var errors = xhr.responseJSON;
+                            if (errors.message) {
+                                $('#message').text(errors.message).show();
+                            } else {
+                                // Hiển thị lỗi validation cho từng trường
+                                if (errors.errors) {
+                                    $.each(errors.errors, function (key, value) {
+                                        $('#' + key + 'Error').text(value[0]);
+                                    });
+                                }
+                            }
+                        } else {
+                            $('#message').text('Đã xảy ra lỗi khi thêm tài khoản.').show();
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+}
