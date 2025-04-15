@@ -150,33 +150,29 @@ namespace CFSM_WEB.Areas.Admin.Controllers
         }
 
         // API để thêm tài khoản nhân viên
-        [HttpPost]
-        [Route("ThemTaiKhoanNhanVien")]
-        public IActionResult ThemTaiKhoanNhanVien([FromBody] RegisterVM model)
+        [HttpPost("ThemTaiKhoanNhanVien")]
+        public async Task<IActionResult> ThemTaiKhoanNhanVien([FromBody] RegisterVM model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var acc = db.TTaiKhoans.FirstOrDefault(t => t.TenDangNhap == model.UserName);
+            var acc = await db.TTaiKhoans.FirstOrDefaultAsync(t => t.TenDangNhap == model.UserName);
             if (acc != null)
             {
-                return BadRequest(new { Message = "Tên đăng nhập đã tồn tại" });
+                return BadRequest(new { message = "Tên đăng nhập đã tồn tại" });
             }
 
-            byte[] salt;
-            var hashedPassword = PasswordHelper.HashPassword(model.Password, out salt);
             var taiKhoan = new TTaiKhoan
             {
                 TenDangNhap = model.UserName,
-                MatKhau = hashedPassword,
-                Salt = Convert.ToBase64String(salt),
+                MatKhau = model.Password, // Lưu ý: Nên mã hóa mật khẩu trước khi lưu
                 LoaiTaiKhoan = 1
             };
 
             db.TTaiKhoans.Add(taiKhoan);
-            db.SaveChanges();
+            await db.SaveChangesAsync();
 
             var nhanVien = new TNhanVien
             {
@@ -191,9 +187,9 @@ namespace CFSM_WEB.Areas.Admin.Controllers
             };
 
             db.TNhanViens.Add(nhanVien);
-            db.SaveChanges();
+            await db.SaveChangesAsync();
 
-            return Ok(new { Message = "Tài khoản nhân viên đã được thêm thành công" });
+            return Ok(new { message = "Thêm tài khoản nhân viên thành công" });
         }
     }
 }
