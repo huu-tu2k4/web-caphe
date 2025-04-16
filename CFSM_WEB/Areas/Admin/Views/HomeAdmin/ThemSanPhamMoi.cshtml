@@ -6,7 +6,7 @@
     Layout = "~/Areas/Admin/Views/Shared/_LayoutAdmin.cshtml";
 }
 
-<h1>ThemSanPhamMoi</h1>
+@* <h1>ThemSanPhamMoi</h1>
 
 <h4>TDoAn</h4>
 <hr />
@@ -52,4 +52,102 @@
 
 <div class="mt-2">
     <button type="button" onclick="location.href='@Url.Action("DanhMucSP")'" class="btn btn-primary">Quay lại danh mục sản phẩm</button>
+</div> *@
+
+<h1>Thêm sản phẩm mới</h1>
+
+<h4>TDoAn</h4>
+<hr />
+
+<div id="message" class="alert alert-danger" style="display: none;"></div>
+
+<div class="row">
+    <div class="col-md-4">
+        <form id="themSanPhamForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="TenDoAn" class="control-label">Tên sản phẩm</label>
+                <input type="text" class="form-control" id="TenDoAn" name="TenDoAn" required>
+                <span class="text-danger" id="TenDoAnError"></span>
+            </div>
+            <div class="form-group">
+                <label for="DonGia" class="control-label">Đơn giá</label>
+                <input type="number" class="form-control" id="DonGia" name="DonGia" required>
+                <span class="text-danger" id="DonGiaError"></span>
+            </div>
+            <div class="form-group">
+                <label for="MoTaDoAn" class="control-label">Mô tả đồ ăn</label>
+                <input type="text" class="form-control" id="MoTaDoAn" name="MoTaDoAn">
+                <span class="text-danger" id="MoTaError"></span>
+            </div>
+            <div class="form-group">
+                <label for="AnhFile" class="control-label">Ảnh sản phẩm</label>
+                <input type="file" class="form-control" id="AnhFile" name="AnhFile">
+                <span class="text-danger" id="AnhFileError"></span>
+            </div>
+            <div class="form-group">
+                <label for="MaMenu" class="control-label">Menu</label>
+                <select class="form-control" id="MaMenu" name="MaMenu" required>
+                    <option value="">-- Chọn Menu --</option>
+                </select>
+                <span class="text-danger" id="MaMenuError"></span>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<div class="mt-2">
+    <button type="button" onclick="location.href='@Url.Action("DanhMucSP", "HomeAdmin")'" class="btn btn-primary">Quay lại danh mục sản phẩm</button>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Load danh sách menu
+            $.ajax({
+                url: '/api/admin/homeadminapi/GetMenus',
+                type: 'GET',
+                success: function (response) {
+                    $.each(response, function (index, item) {
+                        $('#MaMenu').append(`<option value="${item.maMenu}">${item.tenMenu}</option>`);
+                    });
+                },
+                error: function (xhr) {
+                    $('#message').text('Đã xảy ra lỗi khi tải danh sách menu: ' + xhr.responseText).show();
+                }
+            });
+
+            // Submit form thêm sản phẩm
+            $('#themSanPhamForm').on('submit', function (e) {
+                e.preventDefault();
+
+                var formData = new FormData();
+                formData.append('TenDoAn', $('#TenDoAn').val());
+                formData.append('DonGia', $('#DonGia').val());
+                formData.append('MoTaDoAn', $('#MoTaDoAn').val());
+                formData.append('MaMenu', $('#MaMenu').val());
+                if ($('#AnhFile')[0].files[0]) {
+                    formData.append('AnhFile', $('#AnhFile')[0].files[0]);
+                }
+
+                $.ajax({
+                    url: '/api/admin/homeadminapi/ThemSanPhamMoi',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        alert(response.message);
+                        window.location.href = '/admin/homeadmin/DanhMucSP';
+                    },
+                    error: function (xhr) {
+                        $('#message').text(xhr.responseJSON?.message || 'Đã xảy ra lỗi khi thêm sản phẩm.').show();
+                    }
+                });
+            });
+        });
+    </script>
+}

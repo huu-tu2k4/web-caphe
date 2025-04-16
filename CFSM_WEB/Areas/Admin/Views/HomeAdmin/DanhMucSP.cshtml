@@ -8,7 +8,7 @@
 }
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
-<h1>Danh mục sản phẩm</h1>
+@* <h1>Danh mục sản phẩm</h1>
 
 <p>
     <button type="button" onclick="location.href='@Url.Action("ThemSanPhamMoi")'" class="btn btn-primary">Thêm Thực Đơn</button>
@@ -96,3 +96,100 @@
         {"page-link"}
 
 })
+ *@
+<h1>Danh mục sản phẩm</h1>
+<p>
+    <button type="button" onclick="location.href='@Url.Action("ThemSanPhamMoi", "HomeAdmin")'" class="btn btn-primary">Thêm Thực Đơn</button>
+</p>
+<div id="message" class="alert alert-info" style="display: none;"></div>
+<table class="table">
+    <thead>
+        <tr class="table-success">
+            <th>Mã menu</th>
+            <th>Tên sản phẩm</th>
+            <th>Đơn giá</th>
+            <th>Ảnh sản phẩm</th>
+            <th>Mô tả đồ ăn</th>
+            <th>Tên loại sản phẩm</th>
+            <th>Thao Tác</th>
+        </tr>
+    </thead>
+    <tbody id="sanPhamBody">
+        <!-- Dữ liệu sẽ được thêm bằng JavaScript -->
+    </tbody>
+</table>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            loadSanPham(); // Load danh sách sản phẩm
+
+            function loadSanPham() {
+                $.ajax({
+                    url: '/api/admin/homeadminapi/DanhMucSP',
+                    type: 'GET',
+                    success: function (response) {
+                        $('#sanPhamBody').empty();
+
+                        if (!response || response.length === 0) {
+                            $('#message').text('Không có sản phẩm nào trong danh sách.').show();
+                            return;
+                        }
+
+                        $('#message').hide();
+                        $.each(response, function (index, item) {
+                            var rowClass = index % 2 === 0 ? 'table-warning' : 'table-danger';
+                            var anhDoAn = item.anhDoAn ? `<img src="/ImagesMenu/${item.anhDoAn}" alt="${item.tenDoAn}" style="width: 100px; height: auto;" />` : '<span>Không có ảnh</span>';
+                            var row = `<tr class="${rowClass}">
+                                <td>${item.maMenu || ''}</td>
+                                <td>${item.tenDoAn || ''}</td>
+                                <td>${item.donGia || ''}</td>
+                                <td>${anhDoAn}</td>
+                                <td>${item.moTaDoAn || ''}</td>
+                                <td>${item.tenMenu || ''}</td>
+                                <td>
+                                    <button class="btn btn-primary" onclick="window.location.href='/admin/homeadmin/SuaSanPham?maSanPham=${item.maDoAn}'">Edit</button>
+                                    <button class="btn btn-danger" onclick="xoaSanPham(${item.maDoAn})">Delete</button>
+                                </td>
+                            </tr>`;
+                            $('#sanPhamBody').append(row);
+                        });
+                    },
+                    error: function (xhr) {
+                        let errorMessage = 'Đã xảy ra lỗi khi tải danh sách sản phẩm.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        } else if (xhr.responseText) {
+                            errorMessage = xhr.responseText;
+                        }
+                        $('#message').text(errorMessage).show();
+                    }
+                });
+            }
+
+            window.xoaSanPham = function (maSanPham) {
+                if (confirm('Bạn có chắc muốn xóa sản phẩm này?')) {
+                    $.ajax({
+                        url: '/api/admin/homeadminapi/XoaSanPham?maSanPham=' + maSanPham,
+                        type: 'DELETE',
+                        success: function (response) {
+                            $('#message').text(response.message || 'Xóa sản phẩm thành công').show();
+                            loadSanPham();
+                        },
+                        error: function (xhr) {
+                            console.error('Error from XoaSanPham:', xhr);
+                            let errorMessage = 'Đã xảy ra lỗi khi xóa sản phẩm.';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            } else if (xhr.responseText) {
+                                errorMessage = xhr.responseText;
+                            }
+                            $('#message').text(errorMessage).show();
+                        }
+                    });
+                }
+            };
+        });
+    </script>
+}

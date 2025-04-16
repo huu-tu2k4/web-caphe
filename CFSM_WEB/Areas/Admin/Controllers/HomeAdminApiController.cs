@@ -44,6 +44,23 @@ namespace CFSM_WEB.Areas.Admin.Controllers
         public int? TrangThai { get; set; }
     }
 
+    public class DoAnDTO
+    {
+        public int MaDoAn { get; set; }
+        public string TenDoAn { get; set; }
+        public string AnhDoAn { get; set; }
+        public decimal? DonGia { get; set; }
+        public string MoTaDoAn { get; set; }
+        public int? MaMenu { get; set; }
+        public string TenMenu { get; set; } // Từ MaMenuNavigation
+    }
+
+    public class MenuDTO
+    {
+        public int MaMenu { get; set; }
+        public string TenMenu { get; set; }
+    }
+
     [Area("admin")]
     [Route("api/admin/homeadminapi")]
     [ApiController]
@@ -54,6 +71,167 @@ namespace CFSM_WEB.Areas.Admin.Controllers
         public HomeAdminApiController(QuanLyQuanCaPheContext context)
         {
             db = context;
+        }
+
+        // API để lấy danh sách sản phẩm (bỏ phân trang)
+        [HttpGet]
+        [Route("DanhMucSP")]
+        public IActionResult GetDanhMucSP()
+        {
+            var lstSanPham = db.TDoAns
+                              .AsNoTracking()
+                              .OrderBy(x => x.TenDoAn)
+                              .Include(x => x.MaMenuNavigation)
+                              .Select(x => new DoAnDTO
+                              {
+                                  MaDoAn = x.MaDoAn,
+                                  TenDoAn = x.TenDoAn,
+                                  AnhDoAn = x.AnhDoAn,
+                                  DonGia = x.DonGia,
+                                  MoTaDoAn = x.MoTaDoAn,
+                                  MaMenu = x.MaMenu,
+                                  TenMenu = x.MaMenuNavigation.TenMenu
+                              })
+                              .ToList();
+
+            return Ok(lstSanPham);
+        }
+
+        // API để lấy danh sách menu (cho ViewBag.MaMenu)
+        [HttpGet]
+        [Route("GetMenus")]
+        public IActionResult GetMenus()
+        {
+            var menus = db.TMenus
+                          .Select(x => new MenuDTO
+                          {
+                              MaMenu = x.MaMenu,
+                              TenMenu = x.TenMenu
+                          })
+                          .ToList();
+
+            return Ok(menus);
+        }
+
+        // API để thêm sản phẩm mới
+        [HttpPost]
+        [Route("ThemSanPhamMoi")]
+        public async Task<IActionResult> ThemSanPhamMoi([FromForm] TDoAn sanPham, IFormFile AnhFile)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                // Kiểm tra và lưu ảnh
+                if (AnhFile != null && AnhFile.Length > 0)
+                {
+                    var fileName = Path.GetFileNameWithoutExtension(AnhFile.FileName);
+                    var extension = Path.GetExtension(AnhFile.FileName);
+                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "ImagesMenu", fileName + extension);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await AnhFile.CopyToAsync(stream);
+                    }
+
+                    sanPham.AnhDoAn = fileName + extension;
+                }
+
+                // Thêm sản phẩm vào database
+                db.TDoAns.Add(sanPham);
+                await db.SaveChangesAsync();
+
+                return Ok(new { Message = "Sản phẩm đã được thêm thành công" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = "Đã xảy ra lỗi khi lưu sản phẩm: " + ex.Message });
+            }
+        }
+
+        // API để lấy thông tin sản phẩm để sửa
+        [HttpGet]
+        [Route("SuaSanPham")]
+        public IActionResult GetSuaSanPham(int maSanPham)
+        {
+            var sanPham = db.TDoAns.Find(maSanPham);
+            if (sanPham == null)
+            {
+                return NotFound(new { Message = "Sản phẩm không tồn tại" });
+            }
+
+            var sanPhamDTO = new DoAnDTO
+            {
+                MaDoAn = sanPham.MaDoAn,
+                TenDoAn = sanPham.TenDoAn,
+                AnhDoAn = sanPham.AnhDoAn,
+                DonGia = sanPham.DonGia,
+                MoTaDoAn = sanPham.MoTaDoAn,
+                MaMenu = sanPham.MaMenu
+            };
+
+            return Ok(sanPhamDTO);
+        }
+
+        // API để cập nhật sản phẩm
+        [HttpPut]
+        [Route("SuaSanPham")]
+        public IActionResult UpdateSuaSanPham([FromBody] TDoAn sanPham)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var existingSanPham = db.TDoAns.Find(sanPham.MaDoAn);
+            if (existingSanPham == null)
+            {
+                return NotFound(new { Message = "Sản phẩm không tồn tại" });
+            }
+
+            existingSanPham.TenDoAn = sanPham.TenDoAn;
+            existingSanPham.AnhDoAn = sanPham.AnhDoAn;
+            existingSanPham.DonGia = sanPham.DonGia;
+            existingSanPham.MoTaDoAn = sanPham.MoTaDoAn;
+            existingSanPham.MaMenu = sanPham.MaMenu;
+
+            db.TDoAns.Update(existingSanPham);
+            db.SaveChanges();
+
+            return Ok(new { Message = "Sản phẩm đã được cập nhật thành công" });
+        }
+
+        // API để xóa sản phẩm
+        [HttpDelete]
+        [Route("XoaSanPham")]
+        public IActionResult XoaSanPham(int maSanPham)
+        {
+            try
+            {
+                var chiTietHd = db.TChiTietHds.Where(x => x.MaDoAn == maSanPham).ToList();
+                if (chiTietHd.Any())
+                {
+                    return BadRequest(new { Message = "Không xóa được sản phẩm này vì đã có trong hóa đơn" });
+                }
+
+                var sanPham = db.TDoAns.Find(maSanPham);
+                if (sanPham == null)
+                {
+                    return NotFound(new { Message = "Sản phẩm không tồn tại" });
+                }
+
+                db.TDoAns.Remove(sanPham);
+                db.SaveChanges();
+
+                return Ok(new { Message = "Sản phẩm đã được xóa thành công" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = "Lỗi khi xóa sản phẩm: " + ex.Message });
+            }
         }
 
         // API để lấy danh sách hóa đơn
