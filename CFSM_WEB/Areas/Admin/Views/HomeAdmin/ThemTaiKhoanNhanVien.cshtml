@@ -92,6 +92,11 @@
         <input type="text" class="form-control" id="PhoneNumber" name="PhoneNumber" required>
         <span class="text-danger" id="PhoneNumberError"></span>
     </div>
+    <div class="form-group">
+        <label for="Position">Chức vụ</label>
+        <input type="text" class="form-control" id="Position" name="Position" required>
+        <span class="text-danger" id="PositionError"></span>
+    </div>
     <button type="submit" class="btn btn-primary">Thêm tài khoản</button>
 </form>
 
@@ -115,7 +120,8 @@
                     fullName: $('#FullName').val(),
                     email: $('#Email').val(),
                     address: $('#Address').val(),
-                    phoneNumber: $('#PhoneNumber').val()
+                    phoneNumber: $('#PhoneNumber').val(),
+                    position: $('#Position').val()
                 };
 
                 $.ajax({

@@ -29,7 +29,7 @@ namespace CFSM_WEB.ViewModels
 		[MaxLength(24, ErrorMessage = "Tối đa 24 kí tự")]
 		[RegularExpression(@"0[9875]\d{8}", ErrorMessage = "Chưa đúng định dạng di động Việt Nam")]
 		public string PhoneNumber { get; set; }
-
-		public string Email { get; set; }
+		public string Position { get; set; }
+        public string Email { get; set; }
 	}
 }

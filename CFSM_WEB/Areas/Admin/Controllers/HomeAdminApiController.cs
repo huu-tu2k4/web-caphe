@@ -72,8 +72,93 @@ namespace CFSM_WEB.Areas.Admin.Controllers
         {
             db = context;
         }
+        [Route("DanhSachKhachHang")]
+        public IActionResult DanhSachKhachHang()
+        {
+            var listkh = db.TKhachHangs.ToList();
+            return Ok(listkh);
+        }
+        [HttpGet]
+        [Route("DanhSachKhachHangOn")]
+        public IActionResult DanhSachKhachHangOn()
+        {
+            var danhSachKhachHangOn = db.TKhachHangs
+                                        .Where(k => k.TrangThai == 1)
+                                        .ToList();
 
-        // API để lấy danh sách sản phẩm (bỏ phân trang)
+            return Ok(danhSachKhachHangOn);
+        }
+        [HttpPut]
+        [Route("DungHoatDongKhach")]
+        public IActionResult DungHoatDongKhach(int maKhach)
+        {
+            try
+            {
+                var khachHang = db.TKhachHangs.FirstOrDefault(k => k.MaKhachHang == maKhach);
+                if (khachHang == null)
+                {
+                    return NotFound(new { Message = "Khách hàng không tồn tại" });
+                }
+
+                khachHang.TrangThai = 0;
+                db.SaveChanges();
+
+                return Ok(new { Message = "Khách hàng đã bị dừng hoạt động" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = "Lỗi khi dừng hoạt động khách hàng: " + ex.Message });
+            }
+        }
+        [HttpGet]
+        [Route("DanhSachKhachHangOff")]
+        public IActionResult DanhSachKhachHangOff()
+        {
+            var danhSachKhachHangOff = db.TKhachHangs
+                                         .Where(k => k.TrangThai == 0)
+                                         .ToList();
+
+            return Ok(danhSachKhachHangOff);
+        }
+        [HttpPut]
+        [Route("MoHoatDongKhach")]
+        public IActionResult MoHoatDongKhach(int maKhach)
+        {
+            try
+            {
+                var khachHang = db.TKhachHangs.FirstOrDefault(k => k.MaKhachHang == maKhach);
+                if (khachHang == null)
+                {
+                    return NotFound(new { Message = "Khách hàng không tồn tại" });
+                }
+
+                khachHang.TrangThai = 1;
+                db.SaveChanges();
+
+                return Ok(new { Message = "Khách hàng được mở hoạt động" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = "Lỗi khi mở hoạt động khách hàng: " + ex.Message });
+            }
+        }
+        [HttpGet]
+        [Route("TimKiemKhachHang")]
+        public IActionResult TimKiemKhachHang(int? maKhach)
+        {
+            if (maKhach == null)
+            {
+                return BadRequest(new { Message = "Vui lòng cung cấp mã khách hàng để tìm kiếm" });
+            }
+
+            var khachHang = db.TKhachHangs.FirstOrDefault(k => k.MaKhachHang == maKhach.Value);
+            if (khachHang != null)
+            {
+                return Ok(new { KhachHang = khachHang });
+            }
+
+            return NotFound(new { Message = "Không tìm thấy khách hàng với mã này" });
+        }
         [HttpGet]
         [Route("DanhMucSP")]
         public IActionResult GetDanhMucSP()
@@ -307,24 +392,30 @@ namespace CFSM_WEB.Areas.Admin.Controllers
                                  .ToList();
 
             return Ok(listNhanVien);
-        }
+        }        
 
         // API để dừng hoạt động nhân viên
-        [HttpPost]
+        [HttpPut]
         [Route("DungHoatDongNV")]
         public IActionResult DungHoatDongNV(int maNV)
         {
-            var nhanVien = db.TNhanViens.FirstOrDefault(k => k.MaNhanVien == maNV);
-
-            if (nhanVien == null)
+            try
             {
-                return NotFound(new { Message = "Nhân viên không tồn tại" });
+                var nhanVien = db.TNhanViens.FirstOrDefault(k => k.MaNhanVien == maNV);
+                if (nhanVien == null)
+                {
+                    return NotFound(new { Message = "Nhân viên không tồn tại" });
+                }
+
+                nhanVien.TrangThai = 0;
+                db.SaveChanges();
+
+                return Ok(new { Message = "Nhân viên đã bị dừng hoạt động" });
             }
-
-            nhanVien.TrangThai = 0;
-            db.SaveChanges();
-
-            return Ok(new { Message = "Nhân viên đã bị dừng hoạt động" });
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = "Lỗi khi dừng hoạt động nhân viên: " + ex.Message });
+            }
         }
 
         // API để thêm tài khoản nhân viên
@@ -359,8 +450,8 @@ namespace CFSM_WEB.Areas.Admin.Controllers
                 DiaChi = model.Address,
                 SoDienThoai = model.PhoneNumber,
                 TenDangNhap = model.UserName,
-                ChucVu = "Nhân viên",
-                TenHienThi = "a",
+                ChucVu = model.Position,
+                TenHienThi = model.FullName,
                 TrangThai = 1
             };
 

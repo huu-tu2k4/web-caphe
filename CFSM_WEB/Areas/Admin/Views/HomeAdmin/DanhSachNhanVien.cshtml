@@ -139,7 +139,7 @@
                             var rowClass = index % 2 === 0 ? 'table-warning' : 'table-danger';
                             var trangThaiText = item.trangThai === 1 ? 'Còn hoạt động' : 'Dừng hoạt động';
                             var thaoTac = item.trangThai === 1
-                                ? `<button class="btn btn-primary" onclick="dungHoatDong(${1})">Dừng hoạt động</button>`
+                                ? `<button class="btn btn-primary" onclick="dungHoatDong(${item.maNhanVien})">Dừng hoạt động</button>`
                                 : '';
 
                             var row = `<tr class="${rowClass}">
@@ -162,22 +162,45 @@
                 });
             }
 
+            // Hàm dừng hoạt động nhân viên
             window.dungHoatDong = function (maNV) {
                 if (confirm('Bạn có chắc muốn dừng hoạt động nhân viên này?')) {
                     $.ajax({
-                        url: '/api/admin/homeadminapi/DungHoatDongNV',
-                        type: 'POST',
-                        data: { maNV: maNV },
+                        url: '/api/admin/homeadminapi/DungHoatDongNV?maNV=' + maNV,
+                        type: 'PUT',
                         success: function (response) {
-                            $('#message').text(response.message).show();
-                            loadNhanVien(); // Tải lại danh sách sau khi cập nhật
+                            $('#message').text(response.message || 'Nhân viên đã bị dừng hoạt động').show();
+                            loadNhanVien(); //Tải lại danh sách
                         },
                         error: function (xhr) {
-                            $('#message').text(xhr.responseJSON?.message || 'Đã xảy ra lỗi khi dừng hoạt động nhân viên.').show();
+                            let errorMessage = 'Đã xảy ra lỗi khi dừng hoạt động nhân viên.';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            } else if (xhr.responseText) {
+                                errorMessage = xhr.responseText;
+                            }
+                            $('#message').text(errorMessage).show();
                         }
                     });
                 }
             };
+
+            // window.dungHoatDong = function (maNV) {
+            //     if (confirm('Bạn có chắc muốn dừng hoạt động nhân viên này?')) {
+            //         $.ajax({
+            //             url: '/api/admin/homeadminapi/DungHoatDongNV',
+            //             type: 'POST',
+            //             data: { maNV: maNV },
+            //             success: function (response) {
+            //                 $('#message').text(response.message).show();
+            //                 loadNhanVien(); Tải lại danh sách sau khi cập nhật
+            //             },
+            //             error: function (xhr) {
+            //                 $('#message').text(xhr.responseJSON?.message || 'Đã xảy ra lỗi khi dừng hoạt động nhân viên.').show();
+            //             }
+            //         });
+            //     }
+            // };
         });
     </script>
 }
