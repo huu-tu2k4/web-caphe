@@ -3,64 +3,13 @@ using CFSM_WEB.Models;
 using Microsoft.EntityFrameworkCore;
 using CFSM_WEB.ViewModels;
 using CFSM_WEB.Helpers;
+using CFSM_WEB.Areas.Admin.ModelsAd;
+using DocumentFormat.OpenXml.InkML;
+using ClosedXML.Excel;
 
 namespace CFSM_WEB.Areas.Admin.Controllers
 {
-    // DTO cho THoaDon
-    public class HoaDonDTO
-    {
-        public int MaHoaDon { get; set; }
-        public DateTime? NgayLap { get; set; }
-        public string DiaChi { get; set; }
-        public string CachThanhToan { get; set; }
-        public decimal? ThanhTien { get; set; }
-        public string TrangThaiHoaDon { get; set; }
-        public string KhachHangHoTen { get; set; }
-        public string NhanVienHoTen { get; set; }
-    }
-
-    // DTO cho TChiTietHd
-    public class ChiTietHdDTO
-    {
-        public int MaHoaDon { get; set; }
-        public int MaCthd { get; set; }
-        public string TenDoAn { get; set; }
-        public int? SoLuong { get; set; }
-        public decimal? DonGia { get; set; }
-        public decimal? TongTien { get; set; }
-    }
-
-    // DTO cho TNhanVien
-    public class NhanVienDTO
-    {
-        public int MaNhanVien { get; set; }
-        public string HoTen { get; set; }
-        public string Email { get; set; }
-        public string DiaChi { get; set; }
-        public string SoDienThoai { get; set; }
-        public string TenDangNhap { get; set; }
-        public string ChucVu { get; set; }
-        public string TenHienThi { get; set; }
-        public int? TrangThai { get; set; }
-    }
-
-    public class DoAnDTO
-    {
-        public int MaDoAn { get; set; }
-        public string TenDoAn { get; set; }
-        public string AnhDoAn { get; set; }
-        public decimal? DonGia { get; set; }
-        public string MoTaDoAn { get; set; }
-        public int? MaMenu { get; set; }
-        public string TenMenu { get; set; } // Từ MaMenuNavigation
-    }
-
-    public class MenuDTO
-    {
-        public int MaMenu { get; set; }
-        public string TenMenu { get; set; }
-    }
-
+   
     [Area("admin")]
     [Route("api/admin/homeadminapi")]
     [ApiController]
@@ -72,11 +21,25 @@ namespace CFSM_WEB.Areas.Admin.Controllers
         {
             db = context;
         }
+        [HttpGet]
         [Route("DanhSachKhachHang")]
-        public IActionResult DanhSachKhachHang()
+        public IActionResult DanhSachKhachHang(int page = 1, int pageSize = 10)
         {
-            var listkh = db.TKhachHangs.ToList();
-            return Ok(listkh);
+            var total = db.TKhachHangs.Count();
+            var data = db.TKhachHangs
+                .OrderBy(k => k.MaKhachHang)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return Ok(new
+            {
+                Total = total,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling((double)total / pageSize),
+                Data = data
+            });
         }
         [HttpGet]
         [Route("DanhSachKhachHangOn")]
@@ -144,42 +107,56 @@ namespace CFSM_WEB.Areas.Admin.Controllers
         }
         [HttpGet]
         [Route("TimKiemKhachHang")]
-        public IActionResult TimKiemKhachHang(int? maKhach)
+        public IActionResult TimKiemKhachHang(string tenKhachHang)
         {
-            if (maKhach == null)
+            if (string.IsNullOrWhiteSpace(tenKhachHang))
             {
-                return BadRequest(new { Message = "Vui lòng cung cấp mã khách hàng để tìm kiếm" });
+                return BadRequest(new { Message = "Vui lòng cung cấp từ khóa tìm kiếm" });
             }
 
-            var khachHang = db.TKhachHangs.FirstOrDefault(k => k.MaKhachHang == maKhach.Value);
-            if (khachHang != null)
+            var khachHang = db.TKhachHangs
+                .Where(k => k.HoTen.Contains(tenKhachHang))
+                .ToList();
+
+            if (!khachHang.Any())
             {
-                return Ok(new { KhachHang = khachHang });
+                return Ok(new List<TKhachHang>()); // Trả về mảng rỗng thay vì NotFound
             }
 
-            return NotFound(new { Message = "Không tìm thấy khách hàng với mã này" });
+            return Ok(khachHang);
         }
+
         [HttpGet]
         [Route("DanhMucSP")]
-        public IActionResult GetDanhMucSP()
+        public IActionResult GetDanhMucSP(int page = 1, int pageSize = 10)
         {
-            var lstSanPham = db.TDoAns
-                              .AsNoTracking()
-                              .OrderBy(x => x.TenDoAn)
-                              .Include(x => x.MaMenuNavigation)
-                              .Select(x => new DoAnDTO
-                              {
-                                  MaDoAn = x.MaDoAn,
-                                  TenDoAn = x.TenDoAn,
-                                  AnhDoAn = x.AnhDoAn,
-                                  DonGia = x.DonGia,
-                                  MoTaDoAn = x.MoTaDoAn,
-                                  MaMenu = x.MaMenu,
-                                  TenMenu = x.MaMenuNavigation.TenMenu
-                              })
-                              .ToList();
+            var total = db.TDoAns.Count();
+            var data = db.TDoAns
+                .AsNoTracking()
+                .OrderBy(x => x.TenDoAn)
+                .Include(x => x.MaMenuNavigation)
+                .Select(x => new DoAnDTO
+                {
+                    MaDoAn = x.MaDoAn,
+                    TenDoAn = x.TenDoAn,
+                    AnhDoAn = x.AnhDoAn,
+                    DonGia = x.DonGia,
+                    MoTaDoAn = x.MoTaDoAn,
+                    MaMenu = x.MaMenu,
+                    TenMenu = x.MaMenuNavigation.TenMenu
+                })
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
 
-            return Ok(lstSanPham);
+            return Ok(new
+            {
+                Total = total,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling((double)total / pageSize),
+                Data = data
+            });
         }
 
         // API để lấy danh sách menu (cho ViewBag.MaMenu)
@@ -420,7 +397,7 @@ namespace CFSM_WEB.Areas.Admin.Controllers
 
         // API để thêm tài khoản nhân viên
         [HttpPost("ThemTaiKhoanNhanVien")]
-        public async Task<IActionResult> ThemTaiKhoanNhanVien([FromBody] RegisterVM model)
+        public async Task<IActionResult> ThemTaiKhoanNhanVien([FromBody] RegisterEmployeeVM model)
         {
             if (!ModelState.IsValid)
             {
@@ -460,5 +437,223 @@ namespace CFSM_WEB.Areas.Admin.Controllers
 
             return Ok(new { message = "Thêm tài khoản nhân viên thành công" });
         }
+
+        [HttpGet]
+        [Route("TopSanPham")]
+        public IActionResult GetTopSanPham()
+        {
+            var topSanPham = db.TChiTietHds
+                .Include(x => x.MaDoAnNavigation)
+                .GroupBy(x => x.MaDoAn)
+                .Select(g => new
+                {
+                    TenDoAn = g.First().MaDoAnNavigation.TenDoAn,
+                    SoLuong = g.Sum(x => x.SoLuong)
+                })
+                .OrderByDescending(x => x.SoLuong)
+                .Take(5)
+                .ToList();
+
+            var labels = topSanPham.Select(x => x.TenDoAn).ToList();
+            var data = topSanPham.Select(x => x.SoLuong).ToList();
+
+            return Ok(new { labels, data });
+        }
+        [HttpGet]
+        [Route("DashboardStats")]
+        public IActionResult GetDashboardStats()
+        {
+            try
+            {
+               
+                var totalKhachHang = db.TKhachHangs.Count();
+
+            
+                var khachHangOn = db.TKhachHangs.Count(k => k.TrangThai == 1);
+              
+                var totalSanPham = db.TDoAns.Count();           
+                var now = DateTime.Now;
+                var firstDayOfMonth = new DateTime(now.Year, now.Month, 1);
+                var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
+
+                var doanhThuThang = db.THoaDons
+                    .Where(hd => hd.NgayLap >= firstDayOfMonth && hd.NgayLap <= lastDayOfMonth)
+                    .Sum(hd => hd.ThanhTien) ?? 0; // Xử lý null bằng cách dùng 0 nếu không có doanh thu
+
+                return Ok(new
+                {
+                    totalKhachHang,
+                    khachHangOn,
+                    totalSanPham,
+                    doanhThuThang
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = "Lỗi khi lấy thống kê: " + ex.Message });
+            }
+        }
+        [HttpGet]
+        [Route("DoanhThuTheoThang")]
+        public IActionResult DoanhThuTheoThang(int? year = null)
+        {
+            
+            try
+            {
+                // Lấy danh sách hóa đơn
+                var query = db.THoaDons.AsQueryable();
+
+                // Nếu có năm được chỉ định, lọc theo năm
+                if (year.HasValue)
+                {
+                    query = query.Where(hd => hd.NgayLap.Year == year.Value);
+                }
+
+                // Nhóm hóa đơn theo tháng và tính tổng doanh thu
+                var doanhThuTheoThang = query
+                    .GroupBy(hd => new { hd.NgayLap.Year, hd.NgayLap.Month })
+                    .Select(g => new
+                    {
+                        Year = g.Key.Year,
+                        Month = g.Key.Month,
+                        DoanhThu = g.Sum(hd => hd.ThanhTien) ?? 0 
+                    })
+                    .OrderBy(x => x.Year)
+                    .ThenBy(x => x.Month)
+                    .ToList();
+
+                // Chuẩn bị dữ liệu trả về
+                var result = doanhThuTheoThang.Select(x => new
+                {
+                    Thang = $"{x.Month}/{x.Year}",
+                    DoanhThu = x.DoanhThu
+                }).ToList();
+
+                return Ok(new
+                {
+                    Data = result,
+                    TotalMonths = result.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = "Lỗi khi lấy thống kê doanh thu theo tháng: " + ex.Message });
+            }
+        }
+        [HttpGet("ExportChiTietHDExcel")]
+        public IActionResult ExportChiTietHDExcel(int maHD)
+        {
+            var listChiTietHD = db.TChiTietHds
+                                 .Where(x => x.MaHoaDon == maHD)
+                                 .Include(x => x.MaDoAnNavigation)
+                                 .Include(x => x.MaHoaDonNavigation)
+                                 .Select(x => new ChiTietHdDTO
+                                 {
+                                     MaHoaDon = x.MaHoaDon,
+                                     MaCthd = x.MaCthd,
+                                     TenDoAn = x.MaDoAnNavigation.TenDoAn,
+                                     SoLuong = x.SoLuong,
+                                     DonGia = x.DonGia,
+                                     TongTien = x.TongTien
+                                 })
+                                 .ToList();
+
+            if (listChiTietHD == null || !listChiTietHD.Any())
+                return NotFound(new { message = "Không có dữ liệu để xuất." });
+
+            using var workbook = new ClosedXML.Excel.XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("ChiTietHD");
+
+            // Tiêu đề báo cáo
+            worksheet.Cell(1, 1).Value = "CHI TIẾT HÓA ĐƠN";
+            worksheet.Range(1, 1, 1, 7).Merge();
+            worksheet.Cell(1, 1).Style.Font.Bold = true;
+            worksheet.Cell(1, 1).Style.Font.FontSize = 16;
+            worksheet.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            // Thông tin hóa đơn
+            worksheet.Cell(2, 1).Value = "Mã hóa đơn:";
+            worksheet.Cell(2, 2).Value = maHD;
+            worksheet.Cell(2, 1).Style.Font.Bold = true;
+
+            // Tiêu đề cột
+            var headerRow = 4;
+            worksheet.Cell(headerRow, 1).Value = "STT";
+            worksheet.Cell(headerRow, 2).Value = "Mã CTHD";
+            worksheet.Cell(headerRow, 3).Value = "Tên sản phẩm";
+            worksheet.Cell(headerRow, 4).Value = "Số lượng";
+            worksheet.Cell(headerRow, 5).Value = "Đơn giá";
+            worksheet.Cell(headerRow, 6).Value = "Thành tiền";
+            worksheet.Cell(headerRow, 7).Value = "Tổng tiền";
+
+            // Định dạng tiêu đề cột
+            var headerRange = worksheet.Range(headerRow, 1, headerRow, 7);
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+            headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+
+            // Ghi dữ liệu
+            for (int i = 0; i < listChiTietHD.Count; i++)
+            {
+                var row = i + headerRow + 1;
+                var item = listChiTietHD[i];
+                var thanhTien = item.SoLuong * item.DonGia;
+
+                worksheet.Cell(row, 1).Value = i + 1; // STT
+                worksheet.Cell(row, 2).Value = item.MaCthd;
+                worksheet.Cell(row, 3).Value = item.TenDoAn;
+                worksheet.Cell(row, 4).Value = item.SoLuong;
+                worksheet.Cell(row, 5).Value = item.DonGia;
+                worksheet.Cell(row, 6).Value = thanhTien;
+                worksheet.Cell(row, 7).Value = item.TongTien;
+
+                // Định dạng số tiền
+                worksheet.Cell(row, 5).Style.NumberFormat.Format = "#,##0";
+                worksheet.Cell(row, 6).Style.NumberFormat.Format = "#,##0";
+                worksheet.Cell(row, 7).Style.NumberFormat.Format = "#,##0";
+            }
+
+            
+            var dataRange = worksheet.Range(headerRow, 1, headerRow + listChiTietHD.Count, 7);
+            dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+
+            
+            worksheet.Column(1).Width = 8;  
+            worksheet.Column(2).Width = 12; 
+            worksheet.Column(3).Width = 30; 
+            worksheet.Column(4).Width = 12; 
+            worksheet.Column(5).Width = 15; 
+            worksheet.Column(6).Width = 15; 
+            worksheet.Column(7).Width = 15; 
+
+            
+            for (int col = 1; col <= 7; col++)
+            {
+                if (col == 3) continue; 
+                worksheet.Column(col).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            }
+
+            
+            var totalRow = headerRow + listChiTietHD.Count + 1;
+            worksheet.Cell(totalRow, 5).Value = "Tổng cộng:";
+            worksheet.Cell(totalRow, 5).Style.Font.Bold = true;
+            worksheet.Cell(totalRow, 5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+            worksheet.Cell(totalRow, 7).Value = listChiTietHD.Sum(x => x.TongTien);
+            worksheet.Cell(totalRow, 7).Style.Font.Bold = true;
+            worksheet.Cell(totalRow, 7).Style.NumberFormat.Format = "#,##0";
+
+            
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            stream.Position = 0;
+
+            return File(stream.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"ChiTietHD_{maHD}_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
+        }
+
     }
 }
