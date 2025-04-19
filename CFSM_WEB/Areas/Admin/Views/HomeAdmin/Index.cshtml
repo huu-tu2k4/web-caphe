@@ -1,7 +1,168 @@
-﻿@{
-    ViewData["Title"] = "Index";
+﻿@using CFSM_WEB.Models
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "Dashboard";
     Layout = "~/Areas/Admin/Views/Shared/_LayoutAdmin.cshtml";
 }
 
-<h1>Index Nope</h1>
+<style>
+    /* Tùy chỉnh màu sắc và hiệu ứng */
+    .card {
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+    }
+    .btn-gradient-primary {
+        background: linear-gradient(90deg, #ff6f61, #ffb07c);
+        border: none;
+    }
+    .btn-gradient-primary:hover {
+        background: linear-gradient(90deg, #e65a50, #ff9a5b);
+    }
+</style>
 
+<div class="content-wrapper">
+    <div class="page-header">
+        <h3 class="page-title">
+            <span class="page-title-icon bg-gradient-primary text-white me-2">
+                <i class="mdi mdi-home"></i>
+            </span> Dashboard
+        </h3>
+    </div>
+
+    <!-- Thống kê nhanh -->
+    <div class="row">
+        <div class="col-md-4 grid-margin stretch-card">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title"><i class="mdi mdi-account me-2"></i>Tổng khách hàng</h4>
+                    <div class="d-flex align-items-center">
+                        <h2 class="mb-0" id="totalKhachHang">0</h2>
+                        <p class="ms-2 mb-0 text-muted">(<span id="khachHangOn">0</span> hoạt động)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 grid-margin stretch-card">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title"><i class="mdi mdi-coffee me-2"></i>Tổng sản phẩm</h4>
+                    <h2 class="mb-0" id="totalSanPham">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 grid-margin stretch-card">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title"><i class="mdi mdi-currency-usd me-2"></i>Doanh thu tháng</h4>
+                    <h2 class="mb-0" id="doanhThuThang">0 VNĐ</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top 5 sản phẩm bán chạy -->
+    <div class="row">
+        <div class="col-12 grid-margin stretch-card">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Top 5 sản phẩm bán chạy</h4>
+                    <canvas id="topSanPhamChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lối tắt -->
+    <div class="row">
+        <div class="col-12 grid-margin">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Quản lý nhanh</h4>
+                    <div class="d-flex flex-wrap">
+                        <a href="/admin/HomeAdmin/DanhSachKhachHang" class="btn btn-gradient-primary m-2"><i class="mdi mdi-account me-2"></i>Quản lý khách hàng</a>
+                        <a href="/admin/HomeAdmin/DanhMucSP" class="btn btn-gradient-primary m-2"><i class="mdi mdi-coffee me-2"></i>Quản lý sản phẩm</a>
+                        <a href="/admin/HomeAdmin/DanhSachHD" class="btn btn-gradient-primary m-2"><i class="mdi mdi-receipt me-2"></i>Quản lý hóa đơn</a>
+                        <a href="/admin/HomeAdmin/DanhSachNhanVien" class="btn btn-gradient-primary m-2"><i class="mdi mdi-account-multiple me-2"></i>Quản lý nhân viên</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Tải thống kê
+            $.ajax({
+                url: '/api/admin/homeadminapi/DashboardStats',
+                type: 'GET',
+                success: function (response) {
+                    $('#totalKhachHang').fadeOut(200, function() { $(this).text(response.totalKhachHang).fadeIn(200); });
+                    $('#khachHangOn').fadeOut(200, function() { $(this).text(response.khachHangOn).fadeIn(200); });
+                    $('#totalSanPham').fadeOut(200, function() { $(this).text(response.totalSanPham).fadeIn(200); });
+                    $('#doanhThuThang').fadeOut(200, function() { $(this).text(response.doanhThuThang.toLocaleString() + ' VNĐ').fadeIn(200); });
+                },
+                error: function (xhr) {
+                    console.error('Error loading dashboard stats:', xhr);
+                }
+            });
+
+            // Tải biểu đồ top 5 sản phẩm
+                $.ajax({
+                    url: '/api/admin/homeadminapi/TopSanPham',
+                    type: 'GET',
+                    success: function (response) {
+                        new Chart(document.getElementById('topSanPhamChart'), {  // Sửa lại selector này
+                            type: 'bar',
+                            data: {
+                                labels: response.labels,
+                                datasets: [{
+                                    label: 'Số lượng bán',
+                                    data: response.data,
+                                    backgroundColor: '#ffb07c',
+                                    borderColor: '#e67e22',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        min: 0,
+                                        max: Math.max(5, ...response.data) + 1,  // Tối đa 10 hoặc giá trị lớn nhất +1
+                                        ticks: {
+                                            stepSize: 1,
+                                            precision: 0,
+                                            callback: function(value) {
+                                                if (Number.isInteger(value)) {
+                                                    return value;
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                plugins: {
+                                    legend: {
+                                        labels: {
+                                            font: {
+                                                size: 14
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    },
+                    error: function(xhr) {
+                        console.error('Error loading top products:', xhr);
+                    }
+                });
+        });
+    </script>
+}

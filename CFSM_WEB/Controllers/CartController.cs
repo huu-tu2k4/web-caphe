@@ -238,7 +238,8 @@ namespace CFSM_WEB.Controllers
                 HttpContext.Session.Set<List<CartItem>>(MySetting.CART_KEY, new List<CartItem>());
 
                 // Trả về view Success sau khi thanh toán thành công
-                return View("Success");
+                return RedirectToAction("PaymentSuccess");
+
             }
             catch (Exception ex)
             {
@@ -246,6 +247,7 @@ namespace CFSM_WEB.Controllers
                 var error = new { ex.GetBaseException().Message };
                 return BadRequest(error);
             }
+            return View(Cart);
         }
 
 
