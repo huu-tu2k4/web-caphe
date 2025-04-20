@@ -123,9 +123,26 @@ namespace CFSM_WEB.Controllers
         [Authorize]
         public IActionResult Profile()
         {
+            // Kiểm tra claim CustomerId có tồn tại không
             var customerIdClaim = User.FindFirst(MySetting.CLAIM_CUSTOMERID);
-            var customerId = int.Parse(customerIdClaim.Value);
+            if (customerIdClaim == null)
+            {
+                return RedirectToAction("Login", "KhachHang"); // Chuyển hướng về trang Login
+            }
+
+            // Kiểm tra có parse được customerId không
+            if (!int.TryParse(customerIdClaim.Value, out int customerId))
+            {
+                return RedirectToAction("Login", "KhachHang");
+            }
+
+            // Kiểm tra khách hàng có tồn tại trong DB không
             var khachHang = db.TKhachHangs.SingleOrDefault(k => k.MaKhachHang == customerId);
+            if (khachHang == null)
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
             return View(khachHang);
         }
         [Authorize]
