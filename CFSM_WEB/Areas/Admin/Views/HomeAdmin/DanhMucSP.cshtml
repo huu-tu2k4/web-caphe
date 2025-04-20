@@ -1,102 +1,10 @@
 ﻿@using CFSM_WEB.Models;
-@using X.PagedList.Mvc.Core;
-@model X.PagedList.IPagedList<TDoAn>
-
+@model List<TDoAn>
 @{
     ViewData["Title"] = "DanhMucSP";
     Layout = "~/Areas/Admin/Views/Shared/_LayoutAdmin.cshtml";
 }
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
-
-@* <h1>Danh mục sản phẩm</h1>
-
-<p>
-    <button type="button" onclick="location.href='@Url.Action("ThemSanPhamMoi")'" class="btn btn-primary">Thêm Thực Đơn</button>
-</p>
-
-<p>@TempData["XoaSanPham"]</p>
-<table class="table">
-    <thead>
-        <tr class="table-success">
-            <th>
-                Mã menu
-            </th>
-            <th>
-                Tên sản phẩm
-            </th>
-            <th>
-                Đơn giá
-            </th>
-            <th>Ảnh sản phẩm</th>
-            <th>
-                Mô tả đồ ăn
-            </th>
-            <th>Tên loại sản phẩm</th>
-            <th>Thao Tác</th>
-        </tr>
-    </thead>
-    <tbody>
-        @{
-            int i = 0;
-            string @cls = "table-warning";
-        }
-        @foreach (var item in Model)
-        {
-            i = i + 1;
-            cls = "table-warning";
-            if (i % 2 == 0)
-            {
-                cls = "table-danger";
-            }
-            <tr class="@cls">
-                <td>
-                    @Html.DisplayFor(modelItem => item.MaMenu)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.TenDoAn)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.DonGia)
-                </td>
-
-                <td>
-                    @Html.DisplayFor(modelItem => item.MoTaDoAn)
-                </td>
-                <td>
-                    @if (!string.IsNullOrEmpty(item.AnhDoAn))
-                    {
-                        <img src="@Url.Content("~/ImagesMenu/" + @item.AnhDoAn)" alt="@item.TenDoAn" style="width: 100px; height: auto;" />
-                        
-                    }
-                    else
-                    {
-                        <span>Không có ảnh</span>
-                    }
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.MaMenuNavigation.TenMenu)
-                </td>
-                <td>
-                    <button class="btn btn-primary" onclick="window.location.href='@Url.Action("SuaSanPham", new { maSanPham = item.MaDoAn })'">Edit</button>
-                    <button class="btn btn-danger" onclick="window.location.href='@Url.Action("XoaSanPham", new { maSanPham = item.MaDoAn })'">Delete</button>
-
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
-@Html.PagedListPager(Model, page => Url.Action("DanhMucSP", new { page = page }), new
-
-    X.PagedList.Mvc.Core.PagedListRenderOptions()
-{
-    LiElementClasses = new List<String>
-    {"page-item"},
-
-    PageClasses = new List<String>
-        {"page-link"}
-
-})
- *@
 <h1>Danh mục sản phẩm</h1>
 <p>
     <button type="button" onclick="location.href='@Url.Action("ThemSanPhamMoi", "HomeAdmin")'" class="btn btn-primary">Thêm Thực Đơn</button>
@@ -119,77 +27,136 @@
     </tbody>
 </table>
 
+<!-- Phân trang -->
+<div id="pagination" class="mt-3 d-flex justify-content-center">
+    <!-- Nút phân trang sẽ được thêm bằng JavaScript -->
+</div>
+
 @section Scripts {
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        $(document).ready(function () {
-            loadSanPham(); // Load danh sách sản phẩm
+    @Html.AntiForgeryToken()
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script>
+            $(document).ready(function () {
+                var currentPage = 1;
+                var pageSize = 10;
 
-            function loadSanPham() {
-                $.ajax({
-                    url: '/api/admin/homeadminapi/DanhMucSP',
-                    type: 'GET',
-                    success: function (response) {
-                        $('#sanPhamBody').empty();
+                // Load danh sách sản phẩm khi trang được tải
+                loadSanPham(currentPage);
 
-                        if (!response || response.length === 0) {
-                            $('#message').text('Không có sản phẩm nào trong danh sách.').show();
-                            return;
-                        }
-
-                        $('#message').hide();
-                        $.each(response, function (index, item) {
-                            var rowClass = index % 2 === 0 ? 'table-warning' : 'table-danger';
-                            var anhDoAn = item.anhDoAn ? `<img src="/ImagesMenu/${item.anhDoAn}" alt="${item.tenDoAn}" style="width: 100px; height: auto;" />` : '<span>Không có ảnh</span>';
-                            var row = `<tr class="${rowClass}">
-                                <td>${item.maMenu || ''}</td>
-                                <td>${item.tenDoAn || ''}</td>
-                                <td>${item.donGia || ''}</td>
-                                <td>${anhDoAn}</td>
-                                <td>${item.moTaDoAn || ''}</td>
-                                <td>${item.tenMenu || ''}</td>
-                                <td>
-                                    <button class="btn btn-primary" onclick="window.location.href='/admin/homeadmin/SuaSanPham?maSanPham=${item.maDoAn}'">Edit</button>
-                                    <button class="btn btn-danger" onclick="xoaSanPham(${item.maDoAn})">Delete</button>
-                                </td>
-                            </tr>`;
-                            $('#sanPhamBody').append(row);
-                        });
-                    },
-                    error: function (xhr) {
-                        let errorMessage = 'Đã xảy ra lỗi khi tải danh sách sản phẩm.';
-                        if (xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMessage = xhr.responseJSON.message;
-                        } else if (xhr.responseText) {
-                            errorMessage = xhr.responseText;
-                        }
-                        $('#message').text(errorMessage).show();
-                    }
-                });
-            }
-
-            window.xoaSanPham = function (maSanPham) {
-                if (confirm('Bạn có chắc muốn xóa sản phẩm này?')) {
+                // Hàm load danh sách sản phẩm
+                function loadSanPham(page) {
+                    showLoading();
                     $.ajax({
-                        url: '/api/admin/homeadminapi/XoaSanPham?maSanPham=' + maSanPham,
-                        type: 'DELETE',
+                        url: '/api/admin/homeadminapi/DanhMucSP',
+                        type: 'GET',
+                        data: { page: page, pageSize: pageSize },
                         success: function (response) {
-                            $('#message').text(response.message || 'Xóa sản phẩm thành công').show();
-                            loadSanPham();
+                            renderSanPhamTable(response.data);
+                            renderPagination(response.page, response.totalPages);
                         },
                         error: function (xhr) {
-                            console.error('Error from XoaSanPham:', xhr);
-                            let errorMessage = 'Đã xảy ra lỗi khi xóa sản phẩm.';
-                            if (xhr.responseJSON && xhr.responseJSON.message) {
-                                errorMessage = xhr.responseJSON.message;
-                            } else if (xhr.responseText) {
-                                errorMessage = xhr.responseText;
-                            }
-                            $('#message').text(errorMessage).show();
+                            handleAjaxError(xhr, 'Đã xảy ra lỗi khi tải danh sách sản phẩm.');
                         }
                     });
                 }
-            };
-        });
-    </script>
+
+                // Hàm render bảng sản phẩm
+                function renderSanPhamTable(data) {
+                    $('#sanPhamBody').empty();
+                    $('#message').hide();
+
+                    if (!data || data.length === 0) {
+                        $('#message').text('Không có sản phẩm nào trong danh sách.').show();
+                        return;
+                    }
+
+                    $.each(data, function (index, item) {
+                        var rowClass = index % 2 === 0 ? 'table-warning' : 'table-danger';
+                        var anhDoAn = item.anhDoAn ? `<img src="/ImagesMenu/${item.anhDoAn}" alt="${item.tenDoAn}" style="width: 100px; height: auto;" />` : '<span>Không có ảnh</span>';
+                        var row = `<tr class="${rowClass}">
+                            <td>${item.maMenu || ''}</td>
+                            <td>${item.tenDoAn || ''}</td>
+                            <td>${item.donGia || ''}</td>
+                            <td>${anhDoAn}</td>
+                            <td>${item.moTaDoAn || ''}</td>
+                            <td>${item.tenMenu || ''}</td>
+                            <td>
+                                <button class="btn btn-primary" onclick="window.location.href='/admin/homeadmin/SuaSanPham?maSanPham=${item.maDoAn}'">Edit</button>
+                                <button class="btn btn-danger" onclick="xoaSanPham(${item.maDoAn})">Delete</button>
+                            </td>
+                        </tr>`;
+                        $('#sanPhamBody').append(row);
+                    });
+                }
+
+                // Hàm render nút phân trang
+                function renderPagination(currentPage, totalPages) {
+                    $('#pagination').empty();
+                    if (totalPages <= 1) return;
+
+                    // Nút Previous
+                    var prevDisabled = currentPage === 1 ? 'disabled' : '';
+                    $('#pagination').append(`
+                        <button class="btn btn-outline-primary mx-1 ${prevDisabled}" onclick="changePage(${currentPage - 1})">Previous</button>
+                    `);
+
+                    // Nút số trang
+                    for (var i = 1; i <= totalPages; i++) {
+                        var active = i === currentPage ? 'btn-primary' : 'btn-outline-primary';
+                        $('#pagination').append(`
+                            <button class="btn ${active} mx-1" onclick="changePage(${i})">${i}</button>
+                        `);
+                    }
+
+                    // Nút Next
+                    var nextDisabled = currentPage === totalPages ? 'disabled' : '';
+                    $('#pagination').append(`
+                        <button class="btn btn-outline-primary mx-1 ${nextDisabled}" onclick="changePage(${currentPage + 1})">Next</button>
+                    `);
+                }
+
+                // Hàm chuyển trang
+                window.changePage = function (page) {
+                    currentPage = page;
+                    loadSanPham(currentPage);
+                };
+
+                // Hàm xử lý lỗi AJAX
+                function handleAjaxError(xhr, defaultMessage) {
+                    let errorMessage = defaultMessage;
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    } else if (xhr.responseText) {
+                        errorMessage = xhr.responseText;
+                    }
+                    $('#message').text(errorMessage).show();
+                }
+
+                // Hàm hiển thị loading
+                function showLoading() {
+                    $('#sanPhamBody').html('<tr><td colspan="7" class="text-center">Đang tải...</td></tr>');
+                }
+
+                // Hàm xóa sản phẩm
+                window.xoaSanPham = function (maSanPham) {
+                    if (confirm('Bạn có chắc muốn xóa sản phẩm này?')) {
+                        $.ajax({
+                            url: '/api/admin/homeadminapi/XoaSanPham?maSanPham=' + maSanPham,
+                            type: 'DELETE',
+                            headers: {
+                                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                            },
+                            success: function (response) {
+                                $('#message').text(response.message || 'Xóa sản phẩm thành công').show();
+                                loadSanPham(currentPage);
+                            },
+                            error: function (xhr) {
+                                console.error('Error from XoaSanPham:', xhr);
+                                handleAjaxError(xhr, 'Đã xảy ra lỗi khi xóa sản phẩm.');
+                            }
+                        });
+                    }
+                };
+            });
+        </script>
 }

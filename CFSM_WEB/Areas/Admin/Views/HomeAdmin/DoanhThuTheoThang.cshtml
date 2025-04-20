@@ -1,0 +1,142 @@
+﻿@model dynamic
+@{
+    ViewData["Title"] = "DoanhThuTheoThang";
+    Layout = "~/Areas/Admin/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+@section Styles {
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+        <style>
+            .card-header {
+                background-color: #4B49AC;
+                color: white;
+            }
+            .table th, .table td {
+                vertical-align: middle;
+            }
+            #doanhThuChart {
+                max-height: 400px;
+            }
+        </style>
+}
+
+<div class="content-wrapper">
+    <div class="row">
+        <div class="col-lg-12 grid-margin stretch-card">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Thống Kê Doanh Thu Theo Tháng</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Form lọc năm -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="yearFilter" class="form-label">Chọn năm:</label>
+                            <select id="yearFilter" class="form-control">
+                                <option value="">Tất cả</option>
+                                @for (int year = DateTime.Now.Year; year >= DateTime.Now.Year - 5; year--)
+                                {
+                                        <option value="@year">@year</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2 align-self-end">
+                            <button id="filterBtn" class="btn btn-primary">Lọc</button>
+                        </div>
+                    </div>
+
+                    <!-- Biểu đồ doanh thu -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <canvas id="doanhThuChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Bảng thống kê -->
+                    <table id="doanhThuTable" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Tháng</th>
+                                <th>Doanh Thu (VND)</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+                    let chartInstance;
+
+            function loadDoanhThu(year = null) {
+                $.ajax({
+                    url: '/api/admin/homeadminapi/DoanhThuTheoThang' + (year ? `?year=${year}` : ''),
+                    type: 'GET',
+                    success: function (response) {
+                        const data = response.data;
+
+                        const labels = data.map(item => item.thang);
+                        const doanhThu = data.map(item => item.doanhThu);
+
+                        // Cập nhật Chart
+                        if (chartInstance) {
+                            chartInstance.destroy(); // Xóa biểu đồ cũ nếu có
+                        }
+
+                        const ctx = document.getElementById('doanhThuChart').getContext('2d');
+                        chartInstance = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Doanh Thu (VND)',
+                                    data: doanhThu,
+                                        backgroundColor: '#ffb07c',
+                                        borderColor: '#e67e22',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                scales: {
+                                    y: {
+                                        beginAtZero: true
+                                    }
+                                }
+                            }
+                        });
+
+                        // Đổ dữ liệu vào bảng
+                        const tableBody = $('#doanhThuTable tbody');
+                        tableBody.empty();
+                        data.forEach(item => {
+                            const row = `<tr>
+                                            <td>${item.thang}</td>
+                                            <td>${item.doanhThu.toLocaleString('vi-VN')} VND</td>
+                                         </tr>`;
+                            tableBody.append(row);
+                        });
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('Lỗi khi tải dữ liệu:', error);
+                    }
+                });
+            }
+
+            $(document).ready(function () {
+                loadDoanhThu(); // Mặc định không lọc
+
+                $('#filterBtn').on('click', function () {
+                    const selectedYear = $('#yearFilter').val();
+                    loadDoanhThu(selectedYear);
+                });
+            });
+    </script>
+        
+}
