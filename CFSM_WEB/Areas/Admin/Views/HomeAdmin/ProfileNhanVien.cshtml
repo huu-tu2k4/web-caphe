@@ -1,0 +1,272 @@
+﻿@using CFSM_WEB.Areas.Admin.ModelsAd;
+@model NhanVienDTO
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<div class="container-fluid mt-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-10 col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Thông tin nhân viên</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Mã Nhân Viên:</strong>
+                            <p id="MaNhanVien"></p>
+                        </div>
+                        <div class="col-6">
+                            <strong>Họ và tên:</strong>
+                            <p id="HoTen"></p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Email:</strong>
+                            <p id="Email"></p>
+                        </div>
+                        <div class="col-6">
+                            <strong>Số điện thoại:</strong>
+                            <p id="SoDienThoai"></p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Địa chỉ:</strong>
+                            <p id="DiaChi"></p>
+                        </div>
+                        <div class="col-6">
+                            <strong>Tên đăng nhập:</strong>
+                            <p id="TenDangNhap"></p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Chức vụ:</strong>
+                            <p id="ChucVu"></p>
+                        </div>
+                        <div class="col-6">
+                            <strong>Tên hiển thị:</strong>
+                            <p id="TenHienThi"></p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Trạng thái:</strong>
+                            <p id="TrangThai"></p>
+                        </div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editProfileModal">Chỉnh sửa thông tin</button>
+                        <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#changePasswordModal">Đổi mật khẩu</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal chỉnh sửa thông tin nhân viên -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProfileModalLabel">Chỉnh sửa thông tin nhân viên</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editProfileForm">
+                    <input type="hidden" id="editMaNhanVien" name="maNhanVien">
+                    <div class="mb-3">
+                        <label for="editHoTen" class="form-label">Họ và tên</label>
+                        <input type="text" class="form-control" id="editHoTen" name="hoTen" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="editEmail" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editSoDienThoai" class="form-label">Số điện thoại</label>
+                        <input type="text" class="form-control" id="editSoDienThoai" name="soDienThoai" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editDiaChi" class="form-label">Địa chỉ</label>
+                        <input type="text" class="form-control" id="editDiaChi" name="diaChi" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTenHienThi" class="form-label">Tên hiển thị</label>
+                        <input type="text" class="form-control" id="editTenHienThi" name="tenHienThi" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editChucVu" class="form-label">Chức vụ</label>
+                        <input type="text" class="form-control" id="editChucVu" name="chucVu" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTenDangNhap" class="form-label">Tên Đăng nhập</label>
+                        <input type="text" class="form-control" id="editTenDangNhap" name="tenDangNhap" required readonly>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="saveProfileChanges()">Lưu thay đổi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal đổi mật khẩu -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePasswordModalLabel">Đổi mật khẩu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="mb-3">
+                        <label for="matKhauCu" class="form-label">Mật khẩu hiện tại</label>
+                        <input type="password" class="form-control" id="matKhauCu" name="matKhauCu" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="matKhauMoi" class="form-label">Mật khẩu mới</label>
+                        <input type="password" class="form-control" id="matKhauMoi" name="matKhauMoi" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="xacNhanMatKhau" class="form-label">Xác nhận mật khẩu mới</label>
+                        <input type="password" class="form-control" id="xacNhanMatKhau" name="xacNhanMatKhau" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="changePassword()">Đổi mật khẩu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+        <script>
+            $(document).ready(function () {
+                // Lấy thông tin nhân viên khi trang tải
+                $.ajax({
+                    url: '/api/admin/homeadminapi/ProfileNhanVien',
+                    type: 'GET',
+                    xhrFields: {
+                        withCredentials: true 
+                    },
+                    success: function (data) {
+                        $('#MaNhanVien').text(data.maNhanVien);
+                        $('#HoTen').text(data.hoTen);
+                        $('#Email').text(data.email);
+                        $('#SoDienThoai').text(data.soDienThoai);
+                        $('#DiaChi').text(data.diaChi);
+                        $('#TenDangNhap').text(data.tenDangNhap);
+                        $('#ChucVu').text(data.chucVu);
+                        $('#TenHienThi').text(data.tenHienThi);
+                        $('#TrangThai').text(data.trangThai === 1 ? "Hoạt động" : "Không hoạt động");
+
+                        // Điền dữ liệu vào form chỉnh sửa
+                        $('#editMaNhanVien').val(data.maNhanVien);
+                        $('#editHoTen').val(data.hoTen);
+                        $('#editEmail').val(data.email);
+                        $('#editSoDienThoai').val(data.soDienThoai);
+                        $('#editDiaChi').val(data.diaChi);
+                        $('#editTenHienThi').val(data.tenHienThi);
+                        $('#editChucVu').val(data.chucVu);
+                        $('#editTenDangNhap').val(data.tenDangNhap);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Lỗi khi tải thông tin nhân viên:", xhr.status, xhr.responseText, error);
+                        alert("Không thể tải thông tin nhân viên: " + xhr.responseText);
+                    }
+                });
+            });
+
+            // Hàm lưu thay đổi thông tin nhân viên
+            function saveProfileChanges() {
+                var formData = {
+                    maNhanVien: $('#editMaNhanVien').val(),
+                    hoTen: $('#editHoTen').val(),
+                    email: $('#editEmail').val(),
+                    soDienThoai: $('#editSoDienThoai').val(),
+                    diaChi: $('#editDiaChi').val(),
+                    tenHienThi: $('#editTenHienThi').val(),
+                    tenDangNhap: $('#editTenDangNhap').val(),
+                    chucVu: $('#editChucVu').val()
+                };
+
+                $.ajax({
+                    url: '/api/admin/homeadminapi/UpdateProfileNhanVien',
+                    type: 'PUT',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                 
+                    xhrFields: {
+                        withCredentials: true // Gửi cookie xác thực
+                    },
+                    success: function (response) {
+                        alert("Cập nhật thông tin thành công!");
+                        $('#editProfileModal').modal('hide');
+                        // Cập nhật lại thông tin trên trang
+                        $('#HoTen').text(formData.hoTen);
+                        $('#Email').text(formData.email);
+                        $('#SoDienThoai').text(formData.soDienThoai);
+                        $('#DiaChi').text(formData.diaChi);
+                        $('#TenHienThi').text(formData.tenHienThi);
+                        $('#TenDangNhap').text(formData.tenDangNhap);
+                        $('#ChucVu').text(formData.chucVu);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Lỗi khi cập nhật thông tin:", xhr.status, xhr.responseText, error);
+                        alert("Không thể cập nhật thông tin: " + xhr.responseText);
+                    }
+                });
+                    console.log("Data to send:", formData);
+            }
+
+            // Hàm đổi mật khẩu
+            function changePassword() {
+                var matKhauCu = $('#matKhauCu').val();
+                var matKhauMoi = $('#matKhauMoi').val();
+                var xacNhanMatKhau = $('#xacNhanMatKhau').val();
+
+                if (matKhauMoi !== xacNhanMatKhau) {
+                    alert("Mật khẩu mới và xác nhận mật khẩu không khớp!");
+                    return;
+                }
+
+                var formData = {
+                    matKhauCu: matKhauCu,
+                    matKhauMoi: matKhauMoi,
+                    xacNhanMatKhau: xacNhanMatKhau
+                };
+
+                $.ajax({
+                    url: '/api/admin/homeadminapi/ChangePassword',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    xhrFields: {
+                        withCredentials: true // Gửi cookie xác thực
+                    },
+                    success: function (response) {
+                        alert("Đổi mật khẩu thành công!");
+                        $('#changePasswordModal').modal('hide');
+                        $('#changePasswordForm')[0].reset();
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Lỗi khi đổi mật khẩu:", xhr.status, xhr.responseText, error);
+                        alert("Không thể đổi mật khẩu: " + xhr.responseText);
+                    }
+                });
+            }
+        </script>
+}

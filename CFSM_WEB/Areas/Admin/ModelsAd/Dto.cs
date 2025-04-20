@@ -1,4 +1,6 @@
-﻿namespace CFSM_WEB.Areas.Admin.ModelsAd
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace CFSM_WEB.Areas.Admin.ModelsAd
 {
 
     public class HoaDonDTO
@@ -36,8 +38,20 @@
         public string ChucVu { get; set; }
         public string TenHienThi { get; set; }
         public int? TrangThai { get; set; }
+      
     }
+    public class ChangePasswordDTO
+    {
+        [Required]
+        public string MatKhauCu { get; set; }
 
+        [Required]
+        [MinLength(6)]
+        public string MatKhauMoi { get; set; }
+
+        [Compare("MatKhauMoi")]
+        public string XacNhanMatKhau { get; set; }
+    }
     public class DoAnDTO
     {
         public int MaDoAn { get; set; }

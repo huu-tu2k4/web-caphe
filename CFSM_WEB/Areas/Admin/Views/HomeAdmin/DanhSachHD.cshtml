@@ -7,16 +7,18 @@
 
 <h1>Danh sách hóa đơn</h1>
 
+<div id="message" class="alert alert-info" style="display: none;"></div>
+
 <table class="table" id="hoaDonTable">
     <thead>
-        <tr>
+        <tr class="table-success">
             <th>Ngày đặt</th>
             <th>Khách</th>
             <th>Địa chỉ</th>
             <th>Phương thức thanh toán</th>
-            <th>Nhân viên tạo hd</th>
+            <th>Nhân viên tạo HD</th>
             <th>Thành tiền</th>
-            <th>Trạng thái hd</th>
+            <th>Trạng thái HD</th>
             <th>Thao tác</th>
         </tr>
     </thead>
@@ -25,43 +27,125 @@
     </tbody>
 </table>
 
+<!-- Phân trang -->
+<div id="pagination" class="pagination mt-3 d-flex justify-content-center">
+    <!-- Nút phân trang sẽ được thêm bằng JavaScript -->
+</div>
+
 @section Scripts {
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        $(document).ready(function () {
-            loadHoaDon(); // Load danh sách hóa đơn khi trang được tải
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script>
+            $(document).ready(function () {
+                var currentPage = 1;
+                var pageSize = 6;
 
-            function loadHoaDon() {
-                $.ajax({
-                    url: '/api/admin/homeadminapi/DanhSachHD',
-                    type: 'GET',
-                    success: function (response) {
-                        // Xóa dữ liệu cũ trong bảng
-                        $('#hoaDonBody').empty();
+                // Load danh sách hóa đơn khi trang được tải
+                loadHoaDon(currentPage);
 
-                        // Thêm dữ liệu mới từ API
-                        $.each(response, function (index, item) {
-                            var rowClass = index % 2 === 0 ? 'table-warning' : 'table-danger';
-                            var row = `<tr class="${rowClass}">
-                                <td>${item.ngayLap ? new Date(item.ngayLap).toLocaleDateString() : ''}</td>
-                                <td>${item.khachHangHoTen || ''}</td>
-                                <td>${item.diaChi || ''}</td>
-                                <td>${item.cachThanhToan || ''}</td>
-                                <td>${item.nhanVienHoTen || ''}</td>
-                                <td>${item.thanhTien || ''}</td>
-                                <td>${item.trangThaiHoaDon || ''}</td>
-                                <td>
-                                    <button class="btn btn-primary" onclick="window.location.href='/admin/homeadmin/DanhMucChiTietHD?maHD=${item.maHoaDon}'">Detail</button>
-                                </td>
-                            </tr>`;
-                            $('#hoaDonBody').append(row);
-                        });
-                    },
-                    error: function (xhr) {
-                        alert('Đã xảy ra lỗi khi tải danh sách hóa đơn: ' + xhr.responseText);
+                // Hàm load danh sách hóa đơn
+                function loadHoaDon(page) {
+                    showLoading();
+                    $.ajax({
+                        url: '/api/admin/homeadminapi/DanhSachHD',
+                        type: 'GET',
+                        data: { page: page, pageSize: pageSize },
+                        success: function (response) {
+                            if (!response.data || response.data.length === 0) {
+                                $('#message').text('Không có hóa đơn nào để hiển thị.').show();
+                                $('#hoaDonBody').empty();
+                                $('#pagination').empty();
+                                return;
+                            }
+                            renderHoaDonTable(response.data);
+                            renderPagination(response.page, response.totalPages);
+                        },
+                        error: function (xhr) {
+                            handleAjaxError(xhr, 'Đã xảy ra lỗi khi tải danh sách hóa đơn.');
+                        }
+                    });
+                }
+
+                // Hàm render bảng hóa đơn
+                function renderHoaDonTable(data) {
+                    $('#hoaDonBody').empty();
+                    $('#message').hide();
+
+                    $.each(data, function (index, item) {
+                        var rowClass = index % 2 === 0 ? 'table-warning' : 'table-danger';
+                        var row = `<tr class="${rowClass}">
+                            <td>${item.ngayLap ? new Date(item.ngayLap).toLocaleDateString('vi-VN') : ''}</td>
+                            <td>${item.khachHangHoTen || ''}</td>
+                            <td>${item.diaChi || ''}</td>
+                            <td>${item.cachThanhToan || ''}</td>
+                            <td>${item.nhanVienHoTen || ''}</td>
+                            <td>${item.thanhTien ? item.thanhTien.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }) : ''}</td>
+                            <td>${item.trangThaiHoaDon || ''}</td>
+                            <td>
+                                <button class="btn btn-primary btn-sm" onclick="window.location.href='/admin/homeadmin/DanhMucChiTietHD?maHD=${item.maHoaDon}'">Chi tiết</button>
+                            </td>
+                        </tr>`;
+                        $('#hoaDonBody').append(row);
+                    });
+                }
+
+                // Hàm render nút phân trang
+                function renderPagination(currentPage, totalPages) {
+                    $('#pagination').empty();
+                    if (totalPages <= 1) return;
+
+                    var prevDisabled = currentPage === 1 ? 'disabled' : '';
+                    $('#pagination').append(`<button class="btn btn-outline-primary mx-1" ${prevDisabled} onclick="changePage(${currentPage - 1})">Previous</button>`);
+
+                    for (var i = 1; i <= totalPages; i++) {
+                        var active = i === currentPage ? 'btn-primary' : 'btn-outline-primary';
+                        $('#pagination').append(`<button class="btn ${active} mx-1" onclick="changePage(${i})">${i}</button>`);
                     }
-                });
+
+                    var nextDisabled = currentPage === totalPages ? 'disabled' : '';
+                    $('#pagination').append(`<button class="btn btn-outline-primary mx-1" ${nextDisabled} onclick="changePage(${currentPage + 1})">Next</button>`);
+                }
+
+                // Hàm chuyển trang
+                window.changePage = function (page) {
+                    if (page < 1) return;
+                    currentPage = page;
+                    loadHoaDon(currentPage);
+                };
+
+                // Hàm xử lý lỗi AJAX
+                function handleAjaxError(xhr, defaultMessage) {
+                    let errorMessage = defaultMessage;
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    } else if (xhr.responseText) {
+                        errorMessage = xhr.responseText;
+                    }
+                    $('#message').text(errorMessage).show();
+                }
+
+                // Hàm hiển thị loading
+                function showLoading() {
+                    $('#hoaDonBody').html('<tr><td colspan="8" class="text-center">Đang tải...</td></tr>');
+                }
+            });
+        </script>
+
+        <style>
+            .pagination .btn {
+                padding: 8px 16px;
             }
-        });
-    </script>
+            .pagination .btn-primary {
+                background-color: #007bff;
+                border-color: #007bff;
+                color: white;
+            }
+            .pagination .btn-outline-primary {
+                color: #007bff;
+                border-color: #007bff;
+            }
+            .pagination .btn:disabled {
+                cursor: not-allowed;
+                opacity: 0.6;
+            }
+        </style>
 }

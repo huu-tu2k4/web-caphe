@@ -6,6 +6,7 @@ using CFSM_WEB.Helpers;
 using CFSM_WEB.Areas.Admin.ModelsAd;
 using DocumentFormat.OpenXml.InkML;
 using ClosedXML.Excel;
+using System.Security.Claims;
 
 namespace CFSM_WEB.Areas.Admin.Controllers
 {
@@ -299,25 +300,45 @@ namespace CFSM_WEB.Areas.Admin.Controllers
         // API để lấy danh sách hóa đơn
         [HttpGet]
         [Route("DanhSachHD")]
-        public IActionResult GetDanhSachHD()
+        public IActionResult GetDanhSachHD(int page = 1, int pageSize = 6)
         {
-            var listHD = db.THoaDons
-                           .Include(x => x.MaKhachHangNavigation)
-                           .Include(x => x.MaNhanVienNavigation)
-                           .Select(x => new HoaDonDTO
-                           {
-                               MaHoaDon = x.MaHoaDon,
-                               NgayLap = x.NgayLap,
-                               DiaChi = x.DiaChi,
-                               CachThanhToan = x.CachThanhToan,
-                               ThanhTien = x.ThanhTien,
-                               TrangThaiHoaDon = x.TrangThaiHoaDon,
-                               KhachHangHoTen = x.MaKhachHangNavigation.HoTen,
-                               NhanVienHoTen = x.MaNhanVienNavigation.HoTen
-                           })
-                           .ToList();
+            try
+            {
+                var total = db.THoaDons.Count();
 
-            return Ok(listHD);
+                var listHD = db.THoaDons
+                    .AsNoTracking()
+                    .Include(x => x.MaKhachHangNavigation)
+                    .Include(x => x.MaNhanVienNavigation)
+                    .OrderBy(x => x.MaHoaDon)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(x => new HoaDonDTO
+                    {
+                        MaHoaDon = x.MaHoaDon,
+                        NgayLap = x.NgayLap,
+                        DiaChi = x.DiaChi,
+                        CachThanhToan = x.CachThanhToan,
+                        ThanhTien = x.ThanhTien,
+                        TrangThaiHoaDon = x.TrangThaiHoaDon,
+                        KhachHangHoTen = x.MaKhachHangNavigation.HoTen,
+                        NhanVienHoTen = x.MaNhanVienNavigation.HoTen
+                    })
+                    .ToList();
+
+                return Ok(new
+                {
+                    Total = total,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = (int)Math.Ceiling((double)total / pageSize),
+                    Data = listHD
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = "Lỗi khi lấy danh sách hóa đơn: " + ex.Message });
+            }
         }
 
         // API để lấy chi tiết hóa đơn
@@ -351,25 +372,49 @@ namespace CFSM_WEB.Areas.Admin.Controllers
         // API để lấy danh sách nhân viên
         [HttpGet]
         [Route("DanhSachNhanVien")]
-        public IActionResult GetDanhSachNhanVien()
+        public IActionResult GetDanhSachNhanVien(int page = 1, int pageSize = 3)
         {
-            var listNhanVien = db.TNhanViens
-                                 .Select(x => new NhanVienDTO
-                                 {
-                                     MaNhanVien = x.MaNhanVien,
-                                     HoTen = x.HoTen,
-                                     Email = x.Email,
-                                     DiaChi = x.DiaChi,
-                                     SoDienThoai = x.SoDienThoai,
-                                     TenDangNhap = x.TenDangNhap,
-                                     ChucVu = x.ChucVu,
-                                     TenHienThi = x.TenHienThi,
-                                     TrangThai = x.TrangThai
-                                 })
-                                 .ToList();
+            try
+            {
+                if (page < 1 || pageSize < 1)
+                {
+                    return BadRequest(new { Message = "Page và pageSize phải lớn hơn 0" });
+                }
 
-            return Ok(listNhanVien);
-        }        
+                var total = db.TNhanViens.Count();
+                var listNhanVien = db.TNhanViens
+                    .AsNoTracking()
+                    .OrderBy(x => x.MaNhanVien)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(x => new NhanVienDTO
+                    {
+                        MaNhanVien = x.MaNhanVien,
+                        HoTen = x.HoTen,
+                        Email = x.Email,
+                        DiaChi = x.DiaChi,
+                        SoDienThoai = x.SoDienThoai,
+                        TenDangNhap = x.TenDangNhap,
+                        ChucVu = x.ChucVu,
+                        TenHienThi = x.TenHienThi,
+                        TrangThai = x.TrangThai
+                    })
+                    .ToList();
+
+                return Ok(new
+                {
+                    Total = total,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = (int)Math.Ceiling((double)total / pageSize),
+                    Data = listNhanVien
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = "Lỗi khi lấy danh sách nhân viên: " + ex.Message });
+            }
+        }
 
         // API để dừng hoạt động nhân viên
         [HttpPut]
@@ -413,7 +458,7 @@ namespace CFSM_WEB.Areas.Admin.Controllers
             var taiKhoan = new TTaiKhoan
             {
                 TenDangNhap = model.UserName,
-                MatKhau = model.Password, // Lưu ý: Nên mã hóa mật khẩu trước khi lưu
+                MatKhau = model.Password, 
                 LoaiTaiKhoan = 1
             };
 
@@ -654,6 +699,140 @@ namespace CFSM_WEB.Areas.Admin.Controllers
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 $"ChiTietHD_{maHD}_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
         }
+
+        [Route("ProfileNhanVien")]
+        [HttpGet]
+        public IActionResult ProfileNhanVien()
+        {
+            try
+            {
+                var NhanVienIdClaim = User.FindFirst(MySetting.CLAIM_EMPLOYEEID);
+
+                if (NhanVienIdClaim == null)
+                {
+                    return BadRequest("Không tìm thấy thông tin nhân viên.");
+                }
+
+                int employeeId = int.Parse(NhanVienIdClaim.Value);
+
+                var employee = db.TNhanViens.FirstOrDefault(e => e.MaNhanVien == employeeId);
+
+                if (employee == null)
+                {
+                    return NotFound("Không tìm thấy nhân viên với ID đã cho.");
+                }
+
+                var profile = new NhanVienDTO
+                {
+                    MaNhanVien = employee.MaNhanVien,
+                    HoTen = employee.HoTen,
+                    Email = employee.Email,
+                    DiaChi = employee.DiaChi,
+                    SoDienThoai = employee.SoDienThoai,
+                    ChucVu = employee.ChucVu,
+                    TenHienThi = employee.TenHienThi,
+                    TenDangNhap = employee.TenDangNhap,
+                    TrangThai = 1
+                };
+
+                return Ok(profile);  // Trả về dữ liệu dưới dạng JSON
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = "Lỗi khi lấy thông tin nhân viên: " + ex.Message });
+            }
+        }
+
+        [HttpPut]
+        [Route("UpdateProfileNhanVien")]
+        public async Task<IActionResult> UpdateProfileNhanVien([FromBody] NhanVienDTO model)
+        {
+            try
+            {
+                var NhanVienIdClaim = User.FindFirst(MySetting.CLAIM_EMPLOYEEID);
+                if (NhanVienIdClaim == null)
+                {
+                    return BadRequest(new { Message = "Không tìm thấy thông tin nhân viên." });
+                }
+
+                int employeeId = int.Parse(NhanVienIdClaim.Value);
+
+                var employee = await db.TNhanViens.FirstOrDefaultAsync(e => e.MaNhanVien == employeeId);
+                if (employee == null)
+                {
+                    return NotFound(new { Message = "Không tìm thấy nhân viên với ID đã cho." });
+                }
+
+                // Cập nhật thông tin
+                employee.HoTen = model.HoTen;
+                employee.Email = model.Email;
+                employee.DiaChi = model.DiaChi;
+                employee.ChucVu = model.ChucVu;
+                employee.SoDienThoai = model.SoDienThoai;
+                employee.TenHienThi = model.TenHienThi;
+                employee.TenDangNhap = model.TenDangNhap;
+
+                db.TNhanViens.Update(employee);
+                await db.SaveChangesAsync();
+
+                return Ok(new { Message = "Cập nhật thông tin thành công." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Lỗi hệ thống khi cập nhật thông tin.", Error = ex.Message });
+            }
+        }
+        [HttpPost]
+        [Route("ChangePassword")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDTO model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var NhanVienIdClaim = User.FindFirst(MySetting.CLAIM_EMPLOYEEID);
+                if (NhanVienIdClaim == null)
+                {
+                    return BadRequest(new { Message = "Không tìm thấy thông tin nhân viên." });
+                }
+
+                int employeeId = int.Parse(NhanVienIdClaim.Value);
+
+                var employee = await db.TNhanViens.FirstOrDefaultAsync(e => e.MaNhanVien == employeeId);
+               
+
+                var account = await db.TTaiKhoans.FirstOrDefaultAsync(a => a.TenDangNhap == employee.TenDangNhap);
+                if (account == null)
+                {
+                    return BadRequest(new { Message = "Không tìm thấy tài khoản." });
+                }
+
+                if (account.MatKhau != model.MatKhauCu)
+                {
+                    return BadRequest(new { Message = "Mật khẩu hiện tại không đúng." });
+                }
+
+                if (model.MatKhauMoi != model.XacNhanMatKhau)
+                {
+                    return BadRequest(new { Message = "Mật khẩu mới và xác nhận mật khẩu không khớp." });
+                }
+
+                account.MatKhau = model.MatKhauMoi;
+
+                db.TTaiKhoans.Update(account);
+                await db.SaveChangesAsync();
+
+                return Ok(new { Message = "Đổi mật khẩu thành công." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Lỗi hệ thống khi đổi mật khẩu.", Error = ex.Message });
+            }
+        }
+
 
     }
 }

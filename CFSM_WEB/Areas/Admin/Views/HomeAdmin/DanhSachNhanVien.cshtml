@@ -1,96 +1,4 @@
-﻿@* @using CFSM_WEB.Models;
-@model List<TNhanVien>
-
-@{
-    ViewData["Title"] = "DanhSachNhanVien";
-    Layout = "~/Areas/Admin/Views/Shared/_LayoutAdmin.cshtml";
-}
-@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
-
-<h1>Danh sách nhân viên</h1>
-
-<button type="button" onclick="location.href='@Url.Action("ThemTaiKhoanNhanVien")'" class="btn btn-primary">Thêm tài khoản nhân viên</button>
-
-
-<p>@TempData["DungHoatDongNV"]</p>
-<table class="table">
-    <thead>
-        <tr class="table-success">
-            <th>
-                Mã nhân viên
-            </th>
-            <th>
-                Tên nhân viên
-            </th>
-            <th>
-                Email
-            </th>
-            <th>Địa chỉ</th>
-            <th>
-                SĐT
-            </th>
-            <th>Chức vụ</th>
-            <th>Tên đăng nhập</th>
-            <th>Trạng thái HĐ</th>
-            <th>Thao Tác</th>
-        </tr>
-    </thead>
-    <tbody>
-        @{
-            int i = 0;
-            string @cls = "table-warning";
-        }
-        @foreach (var item in Model)
-        {
-            i = i + 1;
-            cls = "table-warning";
-            if (i % 2 == 0)
-            {
-                cls = "table-danger";
-            }
-            <tr class="@cls">
-                <td>
-                    @Html.DisplayFor(modelItem => item.MaNhanVien)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.HoTen)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Email)
-                </td>
-
-                <td>
-                    @Html.DisplayFor(modelItem => item.DiaChi)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.SoDienThoai)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.ChucVu)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.TenDangNhap)
-                </td>
-                @{
-                    if (item.TrangThai == 1)
-                    {
-                        <td>Còn hoạt động</td>
-                        <td> <button class="btn btn-primary" onclick="window.location.href='@Url.Action("DungHoatDongNV", new { maNV = item.MaNhanVien })'">Dừng hoạt động</button></td>
-                    }
-                    else
-                    {
-                        <td>Dừng hoạt động</td>
-                        <td></td>
-                        
-                    }
-                }
-
-            </tr>
-        }
-    </tbody>
-</table> *@
-
-@using CFSM_WEB.Models
+﻿@using CFSM_WEB.Models
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     ViewData["Title"] = "DanhSachNhanVien";
@@ -121,86 +29,128 @@
         <!-- Dữ liệu sẽ được thêm bằng JavaScript -->
     </tbody>
 </table>
+<!-- Phân trang -->
+<div id="pagination" class="pagination mt-3 d-flex justify-content-center">
+    <!-- Nút phân trang sẽ được thêm bằng JavaScript -->
+</div>
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        $(document).ready(function () {
-            loadNhanVien(); // Load danh sách nhân viên khi trang được tải
+           $(document).ready(function () {
+        var currentPage = 1;
+        var pageSize = 3;
 
-            function loadNhanVien() {
-                $.ajax({
-                    url: '/api/admin/homeadminapi/DanhSachNhanVien',
-                    type: 'GET',
-                    success: function (response) {
+        loadNhanVien(currentPage); // Load danh sách nhân viên khi trang được tải
+
+        function loadNhanVien(page) {
+            $.ajax({
+                url: '/api/admin/homeadminapi/DanhSachNhanVien',
+                type: 'GET',
+                data: { page: page, pageSize: pageSize },
+                success: function (response) {
+                    if (!response.data || response.data.length === 0) {
+                        $('#message').text('Không có nhân viên nào để hiển thị.').show();
                         $('#nhanVienBody').empty();
+                        return;
+                    }
+                    renderNhanVienTable(response.data);
+                    renderPagination(response.page, response.totalPages);
+                },
+                error: function (xhr) {
+                    $('#message').text('Đã xảy ra lỗi khi tải danh sách nhân viên: ' + xhr.responseText).show();
+                }
+            });
+        }
 
-                        $.each(response, function (index, item) {
-                            var rowClass = index % 2 === 0 ? 'table-warning' : 'table-danger';
-                            var trangThaiText = item.trangThai === 1 ? 'Còn hoạt động' : 'Dừng hoạt động';
-                            var thaoTac = item.trangThai === 1
-                                ? `<button class="btn btn-primary" onclick="dungHoatDong(${item.maNhanVien})">Dừng hoạt động</button>`
-                                : '';
+        function renderNhanVienTable(data) {
+            $('#nhanVienBody').empty();
+            $.each(data, function (index, item) {
+                var rowClass = index % 2 === 0 ? 'table-warning' : 'table-danger';
+                var trangThaiText = item.trangThai === 1 ? 'Còn hoạt động' : 'Dừng hoạt động';
+                var thaoTac = item.trangThai === 1
+                    ? `<button class="btn btn-primary" onclick="dungHoatDong(${item.maNhanVien})">Dừng hoạt động</button>`
+                    : '';
 
-                            var row = `<tr class="${rowClass}">
-                                <td>${item.maNhanVien || ''}</td>
-                                <td>${item.hoTen || ''}</td>
-                                <td>${item.email || ''}</td>
-                                <td>${item.diaChi || ''}</td>
-                                <td>${item.soDienThoai || ''}</td>
-                                <td>${item.chucVu || ''}</td>
-                                <td>${item.tenDangNhap || ''}</td>
-                                <td>${trangThaiText}</td>
-                                <td>${thaoTac}</td>
-                            </tr>`;
-                            $('#nhanVienBody').append(row);
-                        });
+                var row = `<tr class="${rowClass}">
+                    <td>${item.maNhanVien || ''}</td>
+                    <td>${item.hoTen || ''}</td>
+                    <td>${item.email || ''}</td>
+                    <td>${item.diaChi || ''}</td>
+                    <td>${item.soDienThoai || ''}</td>
+                    <td>${item.chucVu || ''}</td>
+                    <td>${item.tenDangNhap || ''}</td>
+                    <td>${trangThaiText}</td>
+                    <td>${thaoTac}</td>
+                </tr>`;
+                $('#nhanVienBody').append(row);
+            });
+        }
+
+        // Hàm render nút phân trang
+        function renderPagination(currentPage, totalPages) {
+            $('#pagination').empty();
+            if (totalPages <= 1) return;
+
+            var prevDisabled = currentPage === 1 ? 'disabled' : '';
+            $('#pagination').append(`<button class="btn btn-outline-primary mx-1" ${prevDisabled} onclick="changePage(${currentPage - 1})">Previous</button>`);
+
+            for (var i = 1; i <= totalPages; i++) {
+                var active = i === currentPage ? 'btn-primary' : 'btn-outline-primary';
+                $('#pagination').append(`<button class="btn ${active} mx-1" onclick="changePage(${i})">${i}</button>`);
+            }
+
+            var nextDisabled = currentPage === totalPages ? 'disabled' : '';
+            $('#pagination').append(`<button class="btn btn-outline-primary mx-1" ${nextDisabled} onclick="changePage(${currentPage + 1})">Next</button>`);
+        }
+
+        // Hàm chuyển trang
+        window.changePage = function (page) {
+            if (page < 1) return;
+            currentPage = page;
+            loadNhanVien(currentPage);
+        };
+
+        // Hàm dừng hoạt động nhân viên
+        window.dungHoatDong = function (maNV) {
+            if (confirm('Bạn có chắc muốn dừng hoạt động nhân viên này?')) {
+                $.ajax({
+                    url: '/api/admin/homeadminapi/DungHoatDongNV?maNV=' + maNV,
+                    type: 'PUT',
+                    success: function (response) {
+                        $('#message').text(response.message || 'Nhân viên đã bị dừng hoạt động').show();
+                        loadNhanVien(currentPage); // Tải lại danh sách
                     },
                     error: function (xhr) {
-                        $('#message').text('Đã xảy ra lỗi khi tải danh sách nhân viên: ' + xhr.responseText).show();
+                        let errorMessage = 'Đã xảy ra lỗi khi dừng hoạt động nhân viên.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        } else if (xhr.responseText) {
+                            errorMessage = xhr.responseText;
+                        }
+                        $('#message').text(errorMessage).show();
                     }
                 });
             }
-
-            // Hàm dừng hoạt động nhân viên
-            window.dungHoatDong = function (maNV) {
-                if (confirm('Bạn có chắc muốn dừng hoạt động nhân viên này?')) {
-                    $.ajax({
-                        url: '/api/admin/homeadminapi/DungHoatDongNV?maNV=' + maNV,
-                        type: 'PUT',
-                        success: function (response) {
-                            $('#message').text(response.message || 'Nhân viên đã bị dừng hoạt động').show();
-                            loadNhanVien(); //Tải lại danh sách
-                        },
-                        error: function (xhr) {
-                            let errorMessage = 'Đã xảy ra lỗi khi dừng hoạt động nhân viên.';
-                            if (xhr.responseJSON && xhr.responseJSON.message) {
-                                errorMessage = xhr.responseJSON.message;
-                            } else if (xhr.responseText) {
-                                errorMessage = xhr.responseText;
-                            }
-                            $('#message').text(errorMessage).show();
-                        }
-                    });
-                }
-            };
-
-            // window.dungHoatDong = function (maNV) {
-            //     if (confirm('Bạn có chắc muốn dừng hoạt động nhân viên này?')) {
-            //         $.ajax({
-            //             url: '/api/admin/homeadminapi/DungHoatDongNV',
-            //             type: 'POST',
-            //             data: { maNV: maNV },
-            //             success: function (response) {
-            //                 $('#message').text(response.message).show();
-            //                 loadNhanVien(); Tải lại danh sách sau khi cập nhật
-            //             },
-            //             error: function (xhr) {
-            //                 $('#message').text(xhr.responseJSON?.message || 'Đã xảy ra lỗi khi dừng hoạt động nhân viên.').show();
-            //             }
-            //         });
-            //     }
-            // };
-        });
+        };
+    });
     </script>
+        <style>
+                .pagination .btn {
+                    padding: 8px 16px;
+                }
+                .pagination .btn-primary {
+                    background-color: #007bff;
+                    border-color: #007bff;
+                    color: white;
+                }
+                .pagination .btn-outline-primary {
+                    color: #007bff;
+                    border-color: #007bff;
+                }
+                .pagination .btn:disabled {
+                    cursor: not-allowed;
+                    opacity: 0.6;
+                }
+            </style>
 }

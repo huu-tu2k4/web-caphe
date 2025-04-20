@@ -13,6 +13,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.Blazor;
 using System.Net.NetworkInformation;
 using System;
+using CFSM_WEB.Areas.Admin.ModelsAd;
+using DocumentFormat.OpenXml.InkML;
 
 namespace CFSM_WEB.Areas.Admin.Controllers
 {
@@ -26,7 +28,7 @@ namespace CFSM_WEB.Areas.Admin.Controllers
         [Route("index")]
         public IActionResult Index()
         {
-            var customerIdClaim = User.FindFirst(MySetting.CLAIM_CUSTOMERID);
+            var customerIdClaim = User.FindFirst(MySetting.CLAIM_EMPLOYEEID);
             var customerId = int.Parse(customerIdClaim.Value);
             var nhanVien = db.TNhanViens.SingleOrDefault(p => p.MaNhanVien == customerId);
 
@@ -110,5 +112,15 @@ namespace CFSM_WEB.Areas.Admin.Controllers
         {
             return View();
         }
+        [Route("ProfileNhanVien")]
+        [HttpGet]
+        public IActionResult ProfileNhanVien()
+        {
+            return View();
+        }
+
+
+
+
     }
 }
