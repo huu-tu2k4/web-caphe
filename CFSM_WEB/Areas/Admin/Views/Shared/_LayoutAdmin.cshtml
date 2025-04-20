@@ -45,8 +45,10 @@
         <!-- partial:partials/_navbar.html -->
         <nav class="navbar default-layout-navbar col-lg-12 col-12 p-0 fixed-top d-flex flex-row">
             <div class="text-center navbar-brand-wrapper d-flex align-items-center justify-content-center">
-                <a class="navbar-brand brand-logo" asp-controller="HomeAdmin" asp-action="Index"><img src="~/LayoutAdmin/assets/images/logo.svg" alt="logo" /></a>
-                <a class="navbar-brand brand-logo-mini" href="index.html"><img src="~/LayoutAdmin/assets/images/logo-mini.svg" alt="logo" /></a>
+                <a class="navbar-brand brand-logo" asp-controller="HomeAdmin" asp-action="Index">
+    <span style="font-weight: bold; font-size: 1.5rem; color: #333;">KongFuong Coffee</span>
+</a>
+                
             </div>
             <div class="navbar-menu-wrapper d-flex align-items-stretch">
                 <button class="navbar-toggler navbar-toggler align-self-center" type="button" data-toggle="minimize">
@@ -191,7 +193,7 @@
             <nav class="sidebar sidebar-offcanvas" id="sidebar">
                 <ul class="nav">
                     <li class="nav-item nav-profile">
-                        <a href="#" class="nav-link">
+                        <a asp-controller="HomeAdmin" asp-action="ProfileNhanVien" asp-area="admin" class="nav-link">
                             <div class="nav-profile-image">
                                 <img src="~/LayoutAdmin/assets/images/faces/face1.jpg" alt="profile">
                                 <span class="login-status online"></span>
